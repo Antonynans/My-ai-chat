@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useState, useRef, useCallback, KeyboardEvent } from "react";
 import { sendMessage } from "@/lib/firestore";
