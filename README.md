@@ -1,36 +1,239 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nexus — Team Chat with AI Assistant
 
-## Getting Started
+A production-grade collaborative chat application built with Next.js 15, Firebase, BetterAuth, and OpenAI. Real-time team messaging with an on-demand AI assistant invoked via `@ai` mentions.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Stack & Justifications
+
+### Firebase (over Supabase)
+- **Firestore real-time listeners** are battle-tested for chat — sub-100ms sync, offline persistence, and optimistic writes are first-class
+- **Firebase RTDB** provides `onDisconnect()` which is the only reliable way to handle dropped connections for presence without a server process
+- **Subcollection model** (`rooms/{id}/messages`) maps perfectly to paginated chat history; no JOIN queries needed
+- Trade-off: NoSQL query limits (no full-text search), vendor lock-in. Acknowledged in the search implementation (client-side filter with a 200-doc cap; production would use Algolia or Typesense via Cloud Functions)
+
+### BetterAuth
+- Native Next.js App Router support with cookie-based sessions
+- Plugin ecosystem for social providers (Google OAuth)
+- Type-safe session management; `useSession()` hook works seamlessly in client components
+
+### OpenAI
+- **GPT-4o** for AI responses (best reasoning-to-cost ratio)
+- **Whisper** for voice-to-text transcription (`/api/voice`)
+- Streaming via `openai.chat.completions.create({ stream: true })` — chunks written progressively to Firestore, clients pick up via `onSnapshot`
+
+### UI
+- Custom design system using CSS variables — no component library lock-in
+- Syne (display) + Figtree (body) — distinctive, non-generic font pairing
+- Dark-first, fully responsive
+
+---
+
+## Features
+
+### Authentication
+- Email/password signup and login via BetterAuth
+- Google OAuth (social provider)
+- Session management with httpOnly cookies
+- Route protection at layout level
+
+### Real-Time Chat
+- Messages appear instantly via Firestore `onSnapshot` listeners
+- **Typing indicators** — RTDB-backed, auto-clear after 3s inactivity
+- **Presence system** — online/offline with `onDisconnect()` for drop detection
+- Infinite scroll / pagination (load older messages on scroll-to-top)
+- Date dividers, message grouping (same sender within 5min)
+- Optimistic send (message appears immediately, Firestore confirms async)
+
+### AI Assistant
+- Invoked via `@ai` mention anywhere in a message
+- Receives last **20 messages** as context (cost-controlled, ~$0.002/invocation)
+- Streams response progressively — Firestore document updated every ~150ms with accumulated content; clients see it "type" in real-time without WebSockets
+- Visually distinct: star icon avatar, blue accent, `AI` badge, left border
+- Rate limited: 1 invocation per room per 3 seconds; `aiResponding` flag blocks duplicate invocations
+- Stream failure handling: `streamFailed: true` flag shows ⚠ in UI with the partial content preserved
+
+### Chat Management
+- Create public or private channels
+- Discover and join public channels (search by name/description)
+- Member list with online/offline presence
+- Message search (client-side filter, last 200 messages)
+- Persistent history — full message history loads on reconnect
+
+### Voice
+- Browser `MediaRecorder` API for recording (webm format)
+- Transcribed via OpenAI Whisper (`/api/voice`)
+- Transcript sent as a regular message with 🎤 indicator
+- AI can be invoked from voice messages (`@ai` in transcribed text)
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│                   Next.js App Router                 │
+│                                                     │
+│  /app/login          — Auth pages                   │
+│  /app/register                                      │
+│  /app/chat/layout    — Protected shell + presence   │
+│  /app/chat/page      — Room selection / welcome     │
+│  /app/chat/[roomId]  — Real-time chat view          │
+│                                                     │
+│  /api/auth/[...all]  — BetterAuth handler           │
+│  /api/ai             — GPT-4o streaming endpoint    │
+│  /api/voice          — Whisper transcription        │
+└─────────────────┬───────────────────────────────────┘
+                  │
+         ┌────────┴────────┐
+         │                 │
+    Firestore           Firebase RTDB
+    ─────────           ─────────────
+    rooms/              presence/{uid}
+    rooms/{id}/         typing/{roomId}/{uid}
+      messages/
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### AI Streaming Flow
+1. Client detects `@ai` in sent message
+2. POST `/api/ai` with last 20 messages as context
+3. Server creates Firestore message doc: `{ content: '', isStreaming: true }`
+4. Server streams GPT-4o; every 150ms, `updateDoc` appends accumulated content
+5. Client's `onSnapshot` fires on each update — renders partial content + blinking dots
+6. Stream ends: `isStreaming: false`, `aiResponding: false` on room doc
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### State Architecture
+- **Firestore**: source of truth for all persisted data
+- **RTDB**: ephemeral state (presence, typing) — auto-cleaned on disconnect
+- **Zustand**: client-side mirror for rooms, presence, current user — avoids prop drilling
+- **React state**: per-component UI state (messages, typing users)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## Data Model
 
-To learn more about Next.js, take a look at the following resources:
+```typescript
+// Firestore
+rooms/{roomId}
+  name: string
+  description?: string
+  createdBy: string         // uid
+  members: string[]         // uid[]
+  memberNames: Record<uid, string>
+  isPrivate: boolean
+  createdAt: Timestamp
+  lastMessage?: string      // preview for sidebar
+  lastMessageAt?: Timestamp // for ordering
+  aiResponding: boolean     // rate limit flag
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+rooms/{roomId}/messages/{msgId}
+  content: string
+  type: 'human' | 'ai' | 'voice'
+  senderId: string
+  senderName: string
+  senderAvatar?: string
+  createdAt: Timestamp
+  isAIResponse: boolean
+  isStreaming: boolean      // true while GPT-4o streams
+  streamFailed: boolean
+  audioUrl?: string
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+// RTDB
+presence/{uid}: { online: bool, lastSeen: serverTimestamp, displayName: string }
+typing/{roomId}/{uid}: { isTyping: bool, displayName: string, timestamp: number }
+```
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Setup
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 1. Firebase
+1. Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
+2. Enable **Firestore** (production mode)
+3. Enable **Realtime Database**
+4. Create a web app, copy the config values
+
+**Firestore security rules:**
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /rooms/{roomId} {
+      allow read: if request.auth != null && request.auth.uid in resource.data.members;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && request.auth.uid in resource.data.members;
+
+      match /messages/{msgId} {
+        allow read, write: if request.auth != null
+          && request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.members;
+      }
+    }
+  }
+}
+```
+
+### 2. Google OAuth
+1. Go to [console.cloud.google.com](https://console.cloud.google.com) → APIs & Services → Credentials
+2. Create OAuth 2.0 Client ID (Web application)
+3. Add `http://localhost:3000` to Authorized JavaScript origins
+4. Add `http://localhost:3000/api/auth/callback/google` to Authorized redirect URIs
+
+### 3. Environment Variables
+```bash
+cp .env.local.example .env.local
+```
+
+Fill in all values in `.env.local`:
+
+```env
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
+NEXT_PUBLIC_FIREBASE_DATABASE_URL=
+
+OPENAI_API_KEY=
+
+BETTER_AUTH_SECRET=   # any 32+ char random string
+BETTER_AUTH_URL=http://localhost:3000
+
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+### 4. Run
+```bash
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000)
+
+---
+
+## Production Considerations
+
+| Area | Implementation | Notes |
+|---|---|---|
+| AI rate limiting | Per-room 3s debounce + `aiResponding` flag | Add Redis for distributed deployments |
+| Context window | Last 20 messages | ~$0.002/invocation at GPT-4o pricing |
+| Message search | Client-side, last 200 docs | Add Algolia/Typesense for full search |
+| Firestore cost | Batch writes, 150ms stream throttle | Monitor write volume in high-traffic rooms |
+| Auth security | httpOnly cookies, CSRF protection via BetterAuth | Add email verification for production |
+| RTDB cleanup | `onDisconnect()` auto-removes presence | Typing indicators auto-expire after 5s |
+
+---
+
+## What I'd Add With More Time
+- Thread replies (nested message context)
+- Message reactions (emoji picker)
+- File/image attachments via Firebase Storage
+- E2E tests (Playwright for chat flow, Jest for AI context building)
+- AI response TTS playback (OpenAI TTS API → `<audio>` element)
+- Audit log for AI invocations
+- Notification system (browser push + email digest)
+- Read receipts per-room
