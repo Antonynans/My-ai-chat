@@ -105,7 +105,7 @@ export function MessageInput({
       toast.success("Voice transcribed");
       setTimeout(() => textareaRef.current?.focus(), 0);
     };
-    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+    recognition.onerror = (event: any) => {
       setRecording(false);
       if (event.error === "not-allowed")
         toast.error("Microphone access denied");

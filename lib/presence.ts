@@ -6,7 +6,6 @@ import {
   onDisconnect,
   serverTimestamp,
   off,
-  DatabaseReference,
 } from "firebase/database";
 import { rtdb } from "./firebase";
 import type { PresenceData, TypingUser } from "./types";
@@ -15,7 +14,7 @@ export function setupPresence(uid: string, displayName: string) {
   const presenceRef = ref(rtdb, `presence/${uid}`);
   const connectedRef = ref(rtdb, ".info/connected");
 
-  const unsubscribe = onValue(connectedRef, (snap) => {
+  onValue(connectedRef, (snap) => {
     if (!snap.val()) return;
 
     onDisconnect(presenceRef).set({
@@ -46,7 +45,8 @@ export function subscribeToPresence(
 ): () => void {
   const presenceRef = ref(rtdb, "presence");
   onValue(presenceRef, (snap) => {
-    callback(snap.val() || {});
+    const data = snap.val() as Record<string, PresenceData> | null;
+    callback(data || {});
   });
   return () => off(presenceRef);
 }
@@ -63,13 +63,11 @@ export function subscribeToUserPresence(
 }
 
 let typingTimeout: NodeJS.Timeout | null = null;
-let currentTypingRef: DatabaseReference | null = null;
 
 export function setTyping(roomId: string, uid: string, displayName: string) {
   if (typingTimeout) clearTimeout(typingTimeout);
 
   const typingRef = ref(rtdb, `typing/${roomId}/${uid}`);
-  currentTypingRef = typingRef;
 
   set(typingRef, {
     isTyping: true,
@@ -79,7 +77,6 @@ export function setTyping(roomId: string, uid: string, displayName: string) {
 
   typingTimeout = setTimeout(() => {
     remove(typingRef);
-    currentTypingRef = null;
   }, 3000);
 }
 

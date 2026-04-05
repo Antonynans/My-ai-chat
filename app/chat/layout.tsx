@@ -32,6 +32,32 @@ export default function ChatLayout({
     {},
   );
 
+  async function claimInvites(user: { id: string; email?: string | null }) {
+    try {
+      const email = user.email;
+      if (!email) return;
+      const invites = await getPendingInvitesByEmail(email.toLowerCase());
+      for (const inv of invites) {
+        try {
+          const resp = await fetch("/api/invites/accept", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ inviteId: inv.id }),
+          });
+          if (!resp.ok) {
+            const errBody = await resp.json().catch(() => ({}));
+            console.error("Accept invite failed", resp.status, errBody);
+          }
+        } catch (err) {
+          console.error("Failed to accept invite", err);
+        }
+      }
+    } catch (err) {
+      console.error("Claim invites failed", err);
+    }
+  }
+
   useEffect(() => {
     if (isPending) return;
     if (!session?.user) {
@@ -50,6 +76,19 @@ export default function ChatLayout({
     authenticateWithFirebase()
       .then(() => {
         cleanupPresence = setupPresence(user.id, user.name || user.email);
+
+        const currentPresence = {
+          [user.id]: {
+            online: true,
+            lastSeen: Date.now(),
+            displayName: user.name || user.email || "",
+          },
+        };
+        setLocalPresence((prev) => ({ ...prev, ...currentPresence }));
+        setPresence({
+          ...useChatStore.getState().presence,
+          ...currentPresence,
+        });
 
         unsubRooms = subscribeToRooms(user.id, (r) => {
           setLocalRooms(r);
@@ -79,33 +118,15 @@ export default function ChatLayout({
       unsubPublicRooms?.();
       unsubPresence?.();
     };
-  }, [session, isPending]);
-
-  async function claimInvites(user: { id: string; email?: string | null }) {
-    try {
-      const email = user.email;
-      if (!email) return;
-      const invites = await getPendingInvitesByEmail(email.toLowerCase());
-      for (const inv of invites) {
-        try {
-          const resp = await fetch("/api/invites/accept", {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ inviteId: inv.id }),
-          });
-          if (!resp.ok) {
-            const errBody = await resp.json().catch(() => ({}));
-            console.error("Accept invite failed", resp.status, errBody);
-          }
-        } catch (err) {
-          console.error("Failed to accept invite", err);
-        }
-      }
-    } catch (err) {
-      console.error("Claim invites failed", err);
-    }
-  }
+  }, [
+    session,
+    isPending,
+    router,
+    setCurrentUser,
+    setPresence,
+    setPublicRooms,
+    setRooms,
+  ]);
 
   async function handleSignOut() {
     await signOutFromFirebase();
