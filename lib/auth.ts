@@ -1,8 +1,14 @@
+import path from "path";
 import { betterAuth } from "better-auth";
 import Database from "better-sqlite3";
 import { Kysely, SqliteDialect } from "kysely";
 
-const sqlite = new Database("./my-api-chat.db");
+const databasePath =
+  (process.env.SQLITE_DB_PATH ?? (process.env.VERCEL || process.env.NETLIFY))
+    ? path.join("/tmp", "my-api-chat.db")
+    : path.join(process.cwd(), "my-api-chat.db");
+
+const sqlite = new Database(databasePath);
 
 const db = new Kysely({
   dialect: new SqliteDialect({
