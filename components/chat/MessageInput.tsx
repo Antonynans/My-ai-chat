@@ -97,7 +97,7 @@ export function MessageInput({
     recognition.lang = "en-US";
     recognitionRef.current = recognition;
     recognition.onstart = () => setRecording(true);
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript.trim();
       if (!transcript) return;
       setRecording(false);
