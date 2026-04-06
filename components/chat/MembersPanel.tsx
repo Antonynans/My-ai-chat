@@ -39,8 +39,8 @@ export function MembersPanel({
       toast.success(`Invite sent to ${email}`);
       setInviteEmail("");
       setShowInvite(false);
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to send invite");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to send invite");
     } finally {
       setSendingInvite(false);
     }

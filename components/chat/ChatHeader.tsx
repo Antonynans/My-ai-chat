@@ -204,7 +204,7 @@ export function ChatHeader({
 
             {results.length === 0 && searchQ && !searching && (
               <div className="text-[12px] text-(--text3) py-3 text-center">
-                No results for "{searchQ}"
+                No results for &quot;{searchQ}&quot;
               </div>
             )}
           </div>

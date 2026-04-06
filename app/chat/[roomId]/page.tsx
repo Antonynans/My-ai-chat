@@ -110,7 +110,7 @@ export default function RoomPage({ params }: PageProps) {
         toast.error("Failed to reach AI");
       }
     },
-    [room, messages, roomId, userId],
+    [room, messages, roomId, userId, userName],
   );
 
   if (notFound) {
