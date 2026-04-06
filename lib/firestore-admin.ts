@@ -21,7 +21,6 @@ export async function adminCreateAIMessageDoc(roomId: string): Promise<string> {
         streamFailed: false,
         reactions: {},
       });
-    console.log("[Admin] Created AI message:", ref.id);
     return ref.id;
   } catch (err) {
     console.error("[Admin] Failed to create AI message doc:", err);
@@ -48,7 +47,6 @@ export async function adminUpdateAIMessage(
         isStreaming,
         streamFailed,
       });
-    console.log("[Admin] Updated AI message:", messageId);
   } catch (err) {
     console.error("[Admin] Failed to update AI message:", err);
     throw err;
@@ -68,7 +66,6 @@ export async function adminUpdateRoomLastMessage(
         lastMessage: content.slice(0, 100),
         lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
       });
-    console.log("[Admin] Updated room last message");
   } catch (err) {
     console.error("[Admin] Failed to update room last message:", err);
     throw err;
@@ -82,7 +79,6 @@ export async function adminSetAIResponding(roomId: string, value: boolean) {
       .collection("rooms")
       .doc(roomId)
       .update({ aiResponding: value });
-    console.log("[Admin] Updated AI responding status");
   } catch (err) {
     console.error("[Admin] Failed to update AI responding status:", err);
     throw err;

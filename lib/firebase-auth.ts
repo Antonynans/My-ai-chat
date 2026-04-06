@@ -16,10 +16,6 @@ export async function authenticateWithFirebase(): Promise<void> {
   authPromise = (async () => {
     try {
       if (firebaseAuth.currentUser) {
-        console.log(
-          "[Firebase] Already signed in as",
-          firebaseAuth.currentUser.uid,
-        );
         return;
       }
 
@@ -33,7 +29,6 @@ export async function authenticateWithFirebase(): Promise<void> {
         const unsub = onAuthStateChanged(firebaseAuth, (user) => {
           unsub();
           if (user) {
-            console.log("[Firebase] Authenticated as", user.uid);
             resolve();
           } else {
             reject(new Error("Auth state is null after signInWithCustomToken"));

@@ -140,7 +140,7 @@ export async function getPendingInvitesByEmail(email: string) {
     where("accepted", "==", false),
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Invite[];
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Invite[];
 }
 
 export async function markInviteAccepted(inviteId: string, userId: string) {
@@ -163,7 +163,7 @@ export function subscribeToInvitesByEmail(
   return onSnapshot(q, (snap) => {
     const invites = snap.docs.map((d) => ({
       id: d.id,
-      ...(d.data() as any),
+      ...d.data(),
     })) as Invite[];
     callback(invites);
   });
@@ -221,6 +221,22 @@ export async function leaveRoom(roomId: string, userId: string) {
     members: arrayRemove(userId),
     [`memberNames.${userId}`]: deleteField(),
   });
+}
+
+export async function deleteRoom(roomId: string) {
+  const response = await fetch("/api/rooms/delete", {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ roomId }),
+  });
+
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result?.error || "Failed to delete room");
+  }
 }
 
 export async function getRoom(roomId: string): Promise<Room | null> {
