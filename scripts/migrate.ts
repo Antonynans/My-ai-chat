@@ -1,6 +1,12 @@
+import path from "path";
 import Database from 'better-sqlite3'
 
-const db = new Database('./my-api-chat.db')
+const databasePath = process.env.SQLITE_DB_PATH
+  ?? (process.env.VERCEL || process.env.NETLIFY)
+  ? path.join("/tmp", "my-api-chat.db")
+  : path.join(process.cwd(), "my-api-chat.db");
+
+const db = new Database(databasePath)
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS "user" (
