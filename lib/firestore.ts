@@ -140,7 +140,7 @@ export async function getPendingInvitesByEmail(email: string) {
     where("accepted", "==", false),
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Invite[];
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data()) })) as Invite[];
 }
 
 export async function markInviteAccepted(inviteId: string, userId: string) {
@@ -163,7 +163,7 @@ export function subscribeToInvitesByEmail(
   return onSnapshot(q, (snap) => {
     const invites = snap.docs.map((d) => ({
       id: d.id,
-      ...(d.data() as any),
+      ...(d.data()),
     })) as Invite[];
     callback(invites);
   });
