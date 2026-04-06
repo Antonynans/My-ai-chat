@@ -1,18 +1,11 @@
-import path from "path";
 import { betterAuth } from "better-auth";
-import Database from "better-sqlite3";
-import { Kysely, SqliteDialect } from "kysely";
-
-const databasePath =
-  (process.env.SQLITE_DB_PATH ?? (process.env.VERCEL || process.env.NETLIFY))
-    ? path.join("/tmp", "my-api-chat.db")
-    : path.join(process.cwd(), "my-api-chat.db");
-
-const sqlite = new Database(databasePath);
+import { Kysely } from "kysely";
+import { LibsqlDialect } from "@libsql/kysely-libsql";
 
 const db = new Kysely({
-  dialect: new SqliteDialect({
-    database: sqlite,
+  dialect: new LibsqlDialect({
+    url: process.env.TURSO_DATABASE_URL!,
+    authToken: process.env.TURSO_AUTH_TOKEN!,
   }),
 });
 
@@ -20,7 +13,7 @@ export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET!,
   baseURL: process.env.BETTER_AUTH_URL!,
   database: {
-    db: db,
+    db,
     type: "sqlite",
   },
   emailAndPassword: {
