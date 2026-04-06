@@ -8,6 +8,7 @@ import {
 } from "@/lib/firestore-admin";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const DEFAULT_GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-13b-standard";
 
 const SYSTEM_PROMPT = `You are Nexus, an intelligent AI assistant embedded in a professional team workspace chat. You are helpful, concise, and technically capable.
 
@@ -88,7 +89,7 @@ async function streamGroqResponse(
 ) {
   try {
     const stream = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: DEFAULT_GROQ_MODEL,
       max_tokens: 800,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
