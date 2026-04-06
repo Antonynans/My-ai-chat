@@ -1,10 +1,10 @@
 import { Room, PresenceData } from "@/lib/types";
 import { Avatar } from "@/components/ui/Avatar";
 import { useState } from "react";
-import { sendInvite, leaveRoom } from "@/lib/firestore";
+import { sendInvite, leaveRoom, deleteRoom } from "@/lib/firestore";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { UserPlus, LogOut, Hash, Sparkles } from "lucide-react";
+import { UserPlus, LogOut, Hash, Sparkles, Trash2 } from "lucide-react";
 
 interface MembersPanelProps {
   room: Room;
@@ -208,34 +208,65 @@ export function MembersPanel({
           </p>
         </div>
 
-        <button
-          onClick={async () => {
-            if (!confirm("Leave this channel?")) return;
-            setLeaving(true);
-            try {
-              await leaveRoom(room.id, currentUserId);
-              toast.success("Left channel");
-              router.push("/chat");
-            } catch {
-              toast.error("Failed to leave channel");
-            } finally {
-              setLeaving(false);
-            }
-          }}
-          disabled={leaving}
-          className="
-            w-full flex items-center justify-center gap-1.5
-            px-3 py-1.5 rounded-lg text-[11.5px] font-medium
-            border border-[color-mix(in_srgb,#ef4444_30%,transparent)]
-            text-[#ef4444] bg-[color-mix(in_srgb,#ef4444_6%,transparent)]
-            hover:bg-[color-mix(in_srgb,#ef4444_14%,transparent)]
-            disabled:opacity-40 disabled:cursor-not-allowed
-            transition-all duration-150
-          "
-        >
-          <LogOut size={11} />
-          {leaving ? "Leaving…" : "Leave Channel"}
-        </button>
+        <div className="grid gap-2">
+          <button
+            onClick={async () => {
+              if (!confirm("Leave this channel?")) return;
+              setLeaving(true);
+              try {
+                await leaveRoom(room.id, currentUserId);
+                toast.success("Left channel");
+                router.push("/chat");
+              } catch {
+                toast.error("Failed to leave channel");
+              } finally {
+                setLeaving(false);
+              }
+            }}
+            disabled={leaving}
+            className="
+              w-full flex items-center justify-center gap-1.5
+              px-3 py-1.5 rounded-lg text-[11.5px] font-medium
+              border border-[color-mix(in_srgb,#ef4444_30%,transparent)]
+              text-[#ef4444] bg-[color-mix(in_srgb,#ef4444_6%,transparent)]
+              hover:bg-[color-mix(in_srgb,#ef4444_14%,transparent)]
+              disabled:opacity-40 disabled:cursor-not-allowed
+              transition-all duration-150
+            "
+          >
+            <LogOut size={11} />
+            {leaving ? "Leaving…" : "Leave Channel"}
+          </button>
+
+          {room.createdBy === currentUserId && (
+            <button
+              onClick={async () => {
+                if (!confirm("Delete this room permanently?")) return;
+                setLeaving(true);
+                try {
+                  await deleteRoom(room.id);
+                  toast.success("Room deleted");
+                  router.push("/chat");
+                } catch {
+                  toast.error("Failed to delete room");
+                } finally {
+                  setLeaving(false);
+                }
+              }}
+              className="
+                w-full flex items-center justify-center gap-1.5
+                px-3 py-1.5 rounded-lg text-[11.5px] font-semibold
+                border border-[color-mix(in_srgb,#f59e0b_30%,transparent)]
+                text-[#f59e0b] bg-[color-mix(in_srgb,#f59e0b_6%,transparent)]
+                hover:bg-[color-mix(in_srgb,#f59e0b_14%,transparent)]
+                transition-all duration-150
+              "
+            >
+              <Trash2 size={11} />
+              Delete Room
+            </button>
+          )}
+        </div>
       </div>
     </aside>
   );

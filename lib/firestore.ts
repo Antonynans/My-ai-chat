@@ -223,6 +223,24 @@ export async function leaveRoom(roomId: string, userId: string) {
   });
 }
 
+export async function deleteRoom(roomId: string) {
+  const roomRef = doc(db, "rooms", roomId);
+  const messagesRef = collection(db, "rooms", roomId, "messages");
+
+  // Delete messages in batches of 500 until none remain
+  while (true) {
+    const snap = await getDocs(query(messagesRef, limit(500)));
+    if (snap.empty) break;
+
+    const batch = writeBatch(db);
+    snap.docs.forEach((msgDoc) => batch.delete(msgDoc.ref));
+    await batch.commit();
+    if (snap.size < 500) break;
+  }
+
+  await deleteDoc(roomRef);
+}
+
 export async function getRoom(roomId: string): Promise<Room | null> {
   const snap = await getDoc(doc(db, "rooms", roomId));
   return snap.exists() ? roomFromDoc(snap) : null;
