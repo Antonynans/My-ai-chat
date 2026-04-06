@@ -72,58 +72,66 @@ export function MembersPanel({
       scrollbar-thin
     "
     >
-      <div className="px-3 pt-3 pb-2 flex items-center justify-between shrink-0">
-        <span className="text-[10px] font-bold tracking-[0.08em] uppercase text-(--text3)">
-          Members · {room.members.length}
-        </span>
+      <div className="px-3 pt-3 pb-3 flex items-center justify-between shrink-0 border-b border-(--border)">
+        <div>
+          <span className="text-[10px] font-bold tracking-[0.08em] uppercase text-(--text3)">
+            Members · {room.members.length}
+          </span>
+        </div>
         <button
           onClick={() => setShowInvite((s) => !s)}
-          title="Invite someone"
+          title="Add users to this room"
           className={`
-            flex items-center gap-1 px-2 py-1 rounded-md text-[10.5px] font-medium
+            flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[10.5px] font-medium
             transition-all duration-120 border
             ${
               showInvite
-                ? "bg-[color-mix(in_srgb,var(--accent)_12%,var(--surface))] border-[color-mix(in_srgb,var(--accent)_30%,transparent)] text-(--accent)"
-                : "bg-transparent border-(--border) text-(--text3) hover:text-(--text) hover:bg-(--surface)"
+                ? "bg-[color-mix(in_srgb,var(--accent)_12%,var(--surface))] border-(--accent2) text-(--accent)"
+                : "bg-transparent border-(--border) text-(--text3) hover:text-(--text2) hover:bg-(--surface2) hover:border-(--border2)"
             }
           `}
         >
-          <UserPlus size={11} />
-          Invite
+          <UserPlus size={12} />
+          Add
         </button>
       </div>
 
       {showInvite && (
         <form
           onSubmit={handleSendInvite}
-          className="mx-2 mb-2 p-2.5 rounded-lg border border-(--border) bg-(--surface) flex flex-col gap-2"
+          className="mx-3 mt-3 mb-3 p-3 rounded-lg border border-(--border2) bg-(--surface2) flex flex-col gap-2.5"
         >
-          <input
-            value={inviteEmail}
-            onChange={(e) => setInviteEmail(e.target.value)}
-            placeholder="user@example.com"
-            autoFocus
-            className="
-              w-full px-2.5 py-1.5 rounded-md text-[12px]
-              bg-(--surface2) border border-(--border2)
-              text-(--text) placeholder:text-(--text3)
-              outline-none focus:border-(--accent)
-              transition-colors
-            "
-          />
-          <div className="flex gap-1.5">
+          <div>
+            <label className="text-[10px] font-semibold text-(--text2) block mb-1.5 uppercase tracking-wider">
+              Invite by email
+            </label>
+            <input
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="user@example.com"
+              type="email"
+              autoFocus
+              className="
+                w-full px-2.5 py-2 rounded-md text-[12px]
+                bg-(--surface) border border-(--border)
+                text-(--text) placeholder:text-(--text3)
+                outline-none focus:border-(--accent) focus:ring-1 focus:ring-[color-mix(in_srgb,var(--accent)_20%,transparent)]
+                transition-all
+              "
+            />
+          </div>
+          <div className="flex gap-2">
             <button
               type="submit"
               disabled={sendingInvite || !inviteEmail.trim()}
               className="
-                flex-1 px-2 py-1.5 rounded-md text-[11.5px] font-semibold
+                flex-1 px-2.5 py-2 rounded-md text-[11.5px] font-semibold
                 bg-(--accent) text-black
-                disabled:opacity-40 disabled:cursor-not-allowed
-                transition-opacity hover:opacity-85
+                disabled:opacity-50 disabled:cursor-not-allowed
+                transition-all hover:opacity-90 active:scale-95
               "
             >
-              {sendingInvite ? "Sending…" : "Send"}
+              {sendingInvite ? "Sending…" : "Invite"}
             </button>
             <button
               type="button"
@@ -132,13 +140,13 @@ export function MembersPanel({
                 setInviteEmail("");
               }}
               className="
-                px-2 py-1.5 rounded-md text-[11.5px]
+                px-2.5 py-2 rounded-md text-[11.5px] font-medium
                 bg-transparent border border-(--border2)
-                text-(--text3) hover:text-(--text) hover:bg-(--surface2)
+                text-(--text3) hover:text-(--text2) hover:bg-(--surface)
                 transition-all
               "
             >
-              Cancel
+              Close
             </button>
           </div>
         </form>

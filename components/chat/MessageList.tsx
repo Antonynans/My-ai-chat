@@ -167,19 +167,21 @@ export function MessageList({
         })}
 
         {typingUsers.length > 0 && (
-          <div className="flex items-center gap-2.5 px-6 py-3 animate-fade-in">
-            <div className="w-8 flex justify-center">
+          <div className="flex items-center gap-2.5 px-6 py-4 animate-fade-in bg-[color-mix(in_srgb,var(--accent)_6%,transparent)] border-l-2 border-[color-mix(in_srgb,var(--accent)_30%,transparent)]">
+            <div className="w-8 flex justify-center flex-shrink-0">
               <div className="flex gap-0.75 items-center">
                 <span className="typing-dot" />
                 <span className="typing-dot" />
                 <span className="typing-dot" />
               </div>
             </div>
-            <span className="text-[12px] text-(--text3)">
-              <span className="font-medium text-(--text2)">
+            <span className="text-[11.5px]">
+              <span className="font-medium text-(--text)">
                 {typingUsers.map((u) => u.displayName).join(", ")}
               </span>
-              {typingUsers.length === 1 ? " is typing…" : " are typing…"}
+              <span className="text-(--text3)">
+                {typingUsers.length === 1 ? " is typing…" : " are typing…"}
+              </span>
             </span>
           </div>
         )}
