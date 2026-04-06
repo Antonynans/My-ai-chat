@@ -39,12 +39,10 @@ export function MessageList({
 
   useEffect(() => {
     if (!jumpToMessageId) return;
-
     const el = document.getElementById(`msg-${jumpToMessageId}`);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
       setHighlightedId(jumpToMessageId);
-
       const t = setTimeout(() => {
         setHighlightedId(null);
         onJumpHandled?.();
@@ -93,72 +91,76 @@ export function MessageList({
           animation: nx-msg-highlight 2.2s ease forwards;
           border-radius: 6px;
         }
+        /* Typing dots */
+        @keyframes nx-typing-bounce {
+          0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+          30%            { transform: translateY(-4px); opacity: 1; }
+        }
+        .nx-typing-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: currentColor;
+          animation: nx-typing-bounce 1.2s ease-in-out infinite;
+        }
+        .nx-typing-dot:nth-child(2) { animation-delay: 0.15s; }
+        .nx-typing-dot:nth-child(3) { animation-delay: 0.3s; }
       `}</style>
 
       <div
         ref={containerRef}
         onScroll={handleScroll}
         className="
-          flex-1 overflow-y-auto flex flex-col pt-4 pb-4
+          flex-1 overflow-y-auto flex flex-col pt-4 pb-2
           [scrollbar-width:thin] [scrollbar-color:var(--border)_transparent]
-          [&::-webkit-scrollbar]:w-0.75
-          [&::-webkit-scrollbar-thumb]:bg-(--border)
+          [&::-webkit-scrollbar]:w-[3px]
+          [&::-webkit-scrollbar-thumb]:bg-[var(--border)]
           [&::-webkit-scrollbar-thumb]:rounded-full
         "
       >
+        {/* Load more */}
         {loadingMore && (
           <div className="flex justify-center py-4">
             <div className="spinner" />
           </div>
         )}
 
+        {/* Beginning */}
         {!hasMore && allMessages.length > 0 && (
           <div className="flex flex-col items-center gap-1 px-6 py-8">
-            <div className="w-9 h-9 rounded-full bg-(--surface2) flex items-center justify-center text-base mb-1">
-              💬
-            </div>
-            <p className="text-[11.5px] font-semibold text-(--text3)">
-              Beginning of conversation
-            </p>
+            <div className="w-9 h-9 rounded-full bg-[var(--surface2)] flex items-center justify-center text-base mb-1">💬</div>
+            <p className="text-[11.5px] font-semibold text-[var(--text3)]">Beginning of conversation</p>
           </div>
         )}
 
+        {/* Empty state */}
         {allMessages.length === 0 && (
           <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
-            <div className="w-14 h-14 rounded-2xl mb-4 flex items-center justify-center text-2xl bg-(--surface) border border-(--border)">
-              💬
-            </div>
-            <p className="text-[13.5px] font-semibold text-(--text2) mb-1">
-              No messages yet
-            </p>
-            <p className="text-[12px] text-(--text3) leading-relaxed max-w-55">
+            <div className="w-14 h-14 rounded-2xl mb-4 flex items-center justify-center text-2xl bg-[var(--surface)] border border-[var(--border)]">💬</div>
+            <p className="text-[13.5px] font-semibold text-[var(--text2)] mb-1">No messages yet</p>
+            <p className="text-[12px] text-[var(--text3)] leading-relaxed max-w-[220px]">
               Be the first to say something! Use{" "}
-              <code className="ai-mention text-[11px]">@ai</code> to invoke the
-              assistant.
+              <code className="ai-mention text-[11px]">@ai</code> to invoke the assistant.
             </p>
           </div>
         )}
 
+        {/* Messages */}
         {allMessages.map((msg, i) => {
           const prev = allMessages[i - 1];
-          const showDateDivider =
-            !prev || !isSameDay(msg.createdAt, prev.createdAt);
+          const showDateDivider = !prev || !isSameDay(msg.createdAt, prev.createdAt);
           const grouped = isGrouped(msg, prev);
           const isHighlighted = highlightedId === msg.id;
 
           return (
-            <div
-              key={msg.id}
-              id={`msg-${msg.id}`}
-              className={isHighlighted ? "nx-msg-highlighted" : ""}
-            >
+            <div key={msg.id} id={`msg-${msg.id}`} className={isHighlighted ? "nx-msg-highlighted" : ""}>
               {showDateDivider && (
-                <div className="flex items-center gap-3 px-6 py-4 my-2">
-                  <div className="flex-1 h-px bg-(--border)" />
-                  <span className="text-[10.5px] font-medium text-(--text3) whitespace-nowrap px-2 py-0.5 rounded-full border border-(--border) bg-(--surface)">
+                <div className="flex items-center gap-3 px-5 py-3 my-1">
+                  <div className="flex-1 h-px bg-[var(--border)]" />
+                  <span className="text-[10.5px] font-medium text-[var(--text3)] whitespace-nowrap px-2 py-0.5 rounded-full border border-[var(--border)] bg-[var(--surface)]">
                     {formatDateDivider(msg.createdAt)}
                   </span>
-                  <div className="flex-1 h-px bg-(--border)" />
+                  <div className="flex-1 h-px bg-[var(--border)]" />
                 </div>
               )}
               <MessageItem message={msg} isGrouped={grouped} />
@@ -166,23 +168,49 @@ export function MessageList({
           );
         })}
 
+        {/* ── Typing indicator ── */}
         {typingUsers.length > 0 && (
-          <div className="flex items-center gap-2.5 px-6 py-4 animate-fade-in bg-[color-mix(in_srgb,var(--accent)_6%,transparent)] border-l-2 border-[color-mix(in_srgb,var(--accent)_30%,transparent)]">
-            <div className="w-8 flex justify-center flex-shrink-0">
-              <div className="flex gap-0.75 items-center">
-                <span className="typing-dot" />
-                <span className="typing-dot" />
-                <span className="typing-dot" />
-              </div>
+          <div className="
+            mx-3 my-1.5 flex items-center gap-3 px-3 py-2.5 rounded-xl
+            bg-[var(--surface)] border border-[var(--border)]
+            animate-fade-in
+          ">
+            {/* Animated avatar stack */}
+            <div className="flex -space-x-1.5 shrink-0">
+              {typingUsers.slice(0, 3).map((u) => (
+                <div
+                  key={u.uid ?? u.displayName}
+                  className="
+                    w-6 h-6 rounded-full flex items-center justify-center
+                    bg-[var(--surface2)] border-2 border-[var(--sidebar)]
+                    text-[10px] font-bold text-[var(--text2)] uppercase
+                  "
+                >
+                  {u.displayName?.[0] ?? "?"}
+                </div>
+              ))}
             </div>
-            <span className="text-[11.5px]">
-              <span className="font-medium text-(--text)">
-                {typingUsers.map((u) => u.displayName).join(", ")}
+
+            {/* Dots + text */}
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="flex gap-[3px] items-center text-[var(--text3)]">
+                <span className="nx-typing-dot" />
+                <span className="nx-typing-dot" />
+                <span className="nx-typing-dot" />
+              </div>
+              <span className="text-[12px] text-[var(--text3)] truncate">
+                <span className="font-semibold text-[var(--text2)]">
+                  {typingUsers.length === 1
+                    ? typingUsers[0].displayName
+                    : typingUsers.length === 2
+                      ? `${typingUsers[0].displayName} & ${typingUsers[1].displayName}`
+                      : `${typingUsers[0].displayName} & ${typingUsers.length - 1} others`
+                  }
+                </span>
+                {" "}
+                {typingUsers.length === 1 ? "is typing…" : "are typing…"}
               </span>
-              <span className="text-(--text3)">
-                {typingUsers.length === 1 ? " is typing…" : " are typing…"}
-              </span>
-            </span>
+            </div>
           </div>
         )}
 

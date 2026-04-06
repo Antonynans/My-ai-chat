@@ -19,8 +19,8 @@ export async function POST(req: NextRequest) {
     if (!invSnap.exists)
       return NextResponse.json({ error: "Invite not found" }, { status: 404 });
 
-    const inv = invSnap.data() as any;
-    const inviteEmail = String(inv.email || "").toLowerCase();
+    const inv = invSnap.data();
+    const inviteEmail = String(inv?.email || "").toLowerCase();
     const userEmail = String(session.user.email || "").toLowerCase();
     if (inviteEmail !== userEmail) {
       return NextResponse.json(
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     const userId = session.user.id;
     const userName = session.user.name || session.user.email || null;
-    const roomId = inv.roomId;
+    const roomId = inv?.roomId;
 
     const roomRef = admin.firestore().collection("rooms").doc(roomId);
     const batch = admin.firestore().batch();

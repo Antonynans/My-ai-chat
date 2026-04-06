@@ -140,7 +140,7 @@ export async function getPendingInvitesByEmail(email: string) {
     where("accepted", "==", false),
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data()) })) as Invite[];
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Invite[];
 }
 
 export async function markInviteAccepted(inviteId: string, userId: string) {
@@ -163,7 +163,7 @@ export function subscribeToInvitesByEmail(
   return onSnapshot(q, (snap) => {
     const invites = snap.docs.map((d) => ({
       id: d.id,
-      ...(d.data()),
+      ...d.data(),
     })) as Invite[];
     callback(invites);
   });
@@ -224,21 +224,19 @@ export async function leaveRoom(roomId: string, userId: string) {
 }
 
 export async function deleteRoom(roomId: string) {
-  const roomRef = doc(db, "rooms", roomId);
-  const messagesRef = collection(db, "rooms", roomId, "messages");
+  const response = await fetch("/api/rooms/delete", {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ roomId }),
+  });
 
-  // Delete messages in batches of 500 until none remain
-  while (true) {
-    const snap = await getDocs(query(messagesRef, limit(500)));
-    if (snap.empty) break;
-
-    const batch = writeBatch(db);
-    snap.docs.forEach((msgDoc) => batch.delete(msgDoc.ref));
-    await batch.commit();
-    if (snap.size < 500) break;
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result?.error || "Failed to delete room");
   }
-
-  await deleteDoc(roomRef);
 }
 
 export async function getRoom(roomId: string): Promise<Room | null> {

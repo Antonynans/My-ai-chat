@@ -4,7 +4,7 @@ import { useState } from "react";
 import { sendInvite, leaveRoom, deleteRoom } from "@/lib/firestore";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { UserPlus, LogOut, Hash, Sparkles, Trash2 } from "lucide-react";
+import { UserPlus, LogOut, Sparkles, Trash2 } from "lucide-react";
 
 interface MembersPanelProps {
   room: Room;
@@ -44,6 +44,83 @@ export function MembersPanel({
     } finally {
       setSendingInvite(false);
     }
+  }
+
+  function confirmDeleteRoom(): Promise<boolean> {
+    return new Promise((resolve) => {
+      toast.custom(
+        (toastObj) => (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* Backdrop */}
+            <div
+              className={`absolute inset-0 bg-black transition-opacity duration-200 ${
+                toastObj.visible ? "opacity-50" : "opacity-0"
+              }`}
+              onClick={() => {
+                toast.dismiss(toastObj.id);
+                resolve(false);
+              }}
+            />
+
+            {/* Modal */}
+            <div
+              className={`fixed top-1/5 z-10 w-full max-w-sm mx-4 rounded-2xl border border-(--border2) bg-(--surface) p-6 shadow-2xl
+          transition-all duration-200
+          ${toastObj.visible ? "scale-100 opacity-100" : "scale-95 opacity-0"}
+        `}
+            >
+              {/* Icon */}
+              <div className="flex justify-center mb-4">
+                <div className="p-3 rounded-full bg-[color-mix(in_srgb,#f59e0b_12%,transparent)]">
+                  <Trash2 size={24} className="text-[#f59e0b]" />
+                </div>
+              </div>
+
+              {/* Content */}
+              <h3 className="text-center text-lg font-bold text-(--text) mb-2">
+                Delete Channel
+              </h3>
+              <p className="text-center text-[13px] text-(--text3) mb-6 leading-relaxed">
+                This will permanently delete{" "}
+                <span className="font-semibold text-(--text2)">
+                  {room.name}
+                </span>{" "}
+                and all its messages. This action cannot be undone.
+              </p>
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    toast.dismiss(toastObj.id);
+                    resolve(false);
+                  }}
+                  className="flex-1 px-4 py-2.5 rounded-lg text-[13px] font-semibold
+                    bg-(--surface2) border border-(--border2)
+                    text-(--text2) hover:bg-(--surface3) hover:border-(--border)
+                    transition-all duration-150 active:scale-95"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    toast.dismiss(toastObj.id);
+                    resolve(true);
+                  }}
+                  className="flex-1 px-4 py-2.5 rounded-lg text-[13px] font-semibold
+                    bg-[#f59e0b] text-black
+                    hover:bg-[#d97706] 
+                    transition-all duration-150 active:scale-95 shadow-lg shadow-[#f59e0b]/20"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        ),
+        { duration: Infinity, position: "top-center" },
+      );
+    });
   }
 
   const members = room.members
@@ -241,14 +318,20 @@ export function MembersPanel({
           {room.createdBy === currentUserId && (
             <button
               onClick={async () => {
-                if (!confirm("Delete this room permanently?")) return;
+                const confirmed = await confirmDeleteRoom();
+                if (!confirmed) return;
                 setLeaving(true);
                 try {
                   await deleteRoom(room.id);
                   toast.success("Room deleted");
                   router.push("/chat");
-                } catch {
-                  toast.error("Failed to delete room");
+                } catch (err: unknown) {
+                  const message =
+                    err instanceof Error
+                      ? err.message
+                      : "Failed to delete room";
+                  toast.error(message);
+                  console.error("Room deletion failed", err);
                 } finally {
                   setLeaving(false);
                 }
