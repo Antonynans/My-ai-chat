@@ -1,6 +1,6 @@
 # Nexus — Team Chat with AI Assistant
 
-A production-grade collaborative chat application built with Next.js 15, Firebase, BetterAuth, and OpenAI. Real-time team messaging with an on-demand AI assistant invoked via `@ai` mentions.
+A production-grade collaborative chat application built with Next.js 16, Firebase, BetterAuth, and multi-provider AI support. Real-time team messaging with an on-demand AI assistant invoked via `@ai` mentions.
 
 ---
 
@@ -19,11 +19,11 @@ A production-grade collaborative chat application built with Next.js 15, Firebas
 - Plugin ecosystem for social providers (Google OAuth)
 - Type-safe session management; `useSession()` hook works seamlessly in client components
 
-### Groq
+### AI
 
-- **Groq Llama 3.1 70B** for AI responses (configurable via API key)
+- **Google Gemini** and **Groq** support for chat assistant responses, selectable by environment variable
 - **Whisper** for voice-to-text transcription (`/api/voice`)
-- Streaming via `openai.chat.completions.create({ stream: true })` or Groq API — chunks written progressively to Firestore, clients pick up via `onSnapshot`
+- Streaming responses progressively to Firestore; the client renders partial content as it arrives via real-time updates
 
 ### UI
 
@@ -77,38 +77,13 @@ A production-grade collaborative chat application built with Next.js 15, Firebas
 
 ---
 
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────┐
-│                   Next.js App Router                 │
-│                                                     │
-│  /app/login          — Auth pages                   │
-│  /app/register                                      │
-│  /app/chat/layout    — Protected shell + presence   │
-│  /app/chat/page      — Room selection / welcome     │
-│  /app/chat/[roomId]  — Real-time chat view          │
-│                                                     │
-│  /api/auth/[...all]  — BetterAuth handler           │
-│  /api/ai             — GPT-4o streaming endpoint    │
-│  /api/voice          — Whisper transcription        │
-└─────────────────┬───────────────────────────────────┘
-                  │
-         ┌────────┴────────┐
-         │                 │
-    Firestore           Firebase RTDB
-    ─────────           ─────────────
-    rooms/              presence/{uid}
-    rooms/{id}/         typing/{roomId}/{uid}
-      messages/
-```
 
 ### AI Streaming Flow
 
 1. Client detects `@ai` in sent message
 2. POST `/api/ai` with last 20 messages as context
 3. Server creates Firestore message doc: `{ content: '', isStreaming: true }`
-4. Server streams GPT-4o; every 150ms, `updateDoc` appends accumulated content
+4. Server streams AI output; every 150ms, `updateDoc` appends accumulated content
 5. Client's `onSnapshot` fires on each update — renders partial content + blinking dots
 6. Stream ends: `isStreaming: false`, `aiResponding: false` on room doc
 
@@ -119,39 +94,6 @@ A production-grade collaborative chat application built with Next.js 15, Firebas
 - **Zustand**: client-side mirror for rooms, presence, current user — avoids prop drilling
 - **React state**: per-component UI state (messages, typing users)
 
----
-
-## Data Model
-
-```typescript
-// Firestore
-rooms/{roomId}
-  name: string
-  description?: string
-  createdBy: string         // uid
-  members: string[]         // uid[]
-  memberNames: Record<uid, string>
-  isPrivate: boolean
-  createdAt: Timestamp
-  lastMessage?: string      // preview for sidebar
-  lastMessageAt?: Timestamp // for ordering
-  aiResponding: boolean     // rate limit flag
-
-rooms/{roomId}/messages/{msgId}
-  content: string
-  type: 'human' | 'ai' | 'voice'
-  senderId: string
-  senderName: string
-  senderAvatar?: string
-  createdAt: Timestamp
-  isAIResponse: boolean
-  isStreaming: boolean      // true while GPT-4o streams
-  streamFailed: boolean
-  audioUrl?: string
-
-// RTDB
-presence/{uid}: { online: bool, lastSeen: serverTimestamp, displayName: string }
-typing/{roomId}/{uid}: { isTyping: bool, displayName: string, timestamp: number }
 ```
 
 ---
@@ -185,18 +127,7 @@ service cloud.firestore {
 }
 ```
 
-### 2. Google OAuth
-
-1. Go to [console.cloud.google.com](https://console.cloud.google.com) → APIs & Services → Credentials
-2. Create OAuth 2.0 Client ID (Web application)
-3. Add `http://localhost:3000` to Authorized JavaScript origins
-4. Add `http://localhost:3000/api/auth/callback/google` to Authorized redirect URIs
-
-### 3. Environment Variables
-
-```bash
-cp .env.example .env.local
-```
+### 2. Environment Variables
 
 Fill in all values in `.env.local`:
 
@@ -219,6 +150,10 @@ FIREBASE_ADMIN_PRIVATE_KEY=
 OPENAI_API_KEY=
 # or
 GROQ_API_KEY=
+# or
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.5-flash
+AI_PROVIDER=gemini  # or groq
 
 # Authentication
 BETTER_AUTH_SECRET=   # any 32+ char random string
@@ -230,52 +165,14 @@ GOOGLE_CLIENT_SECRET=
 
 # App URL
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-```Deployment
 
-### Netlify (Recommended for static sites)
-1. Push your code to GitHub
-2. Go to [netlify.com](https://netlify.com) and sign in
-3. Click "Add new site" → "Import an existing project"
-4. Connect your GitHub repository
-5. Configure build settings:
-   - **Build command**: `npm run build`
-   - **Publish directory**: `.next`
-   - **Node version**: 18
-
-6. Set environment variables in Netlify dashboard:
-   - All variables from `.env.local` (see Environment Variables section above)
-   - Update `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` to your Netlify domain
-
-**Note**: Netlify's serverless functions have limitations with SQLite databases. For full functionality, consider Vercel.
-
-### Vercel (Recommended for full features)
-```bash
-npm install -g vercel
-vercel --prod
-| Database persistence | SQLite for local dev | Use PostgreSQL/MySQL for production scaling |
-| Deployment | Netlify/Vercel/Firebase Hosting | Netlify has SQLite limitations; prefer Vercel for full features |
 ````
-
-Vercel provides better support for:
-
-- SQLite databases
-- Server Actions
-- Next.js features
-- Automatic deployments
-
-### Firebase Hosting (Alternative)
-
-```bash
-npm install -g firebase-tools
-firebase init hosting
-firebase deploy
-```
 
 ---
 
 ##
 
-### 4. Run
+### 3. Run
 
 ```bash
 npm install
@@ -291,7 +188,7 @@ Open [http://localhost:3000](http://localhost:3000)
 | Area             | Implementation                                   | Notes                                      |
 | ---------------- | ------------------------------------------------ | ------------------------------------------ |
 | AI rate limiting | Per-room 3s debounce + `aiResponding` flag       | Add Redis for distributed deployments      |
-| Context window   | Last 20 messages                                 | ~$0.002/invocation at GPT-4o pricing       |
+| Context window   | Last 20 messages                                 | Cost varies by provider (Gemini, Groq)     |
 | Message search   | Client-side, last 200 docs                       | Add Algolia/Typesense for full search      |
 | Firestore cost   | Batch writes, 150ms stream throttle              | Monitor write volume in high-traffic rooms |
 | Auth security    | httpOnly cookies, CSRF protection via BetterAuth | Add email verification for production      |
