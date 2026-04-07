@@ -5,7 +5,7 @@ import { sendMessage } from "@/lib/firestore";
 import { setTyping, clearTyping } from "@/lib/presence";
 import { detectAIMention } from "@/lib/utils";
 import toast from "react-hot-toast";
-import { Mic, MicOff, ArrowUp, Sparkles } from "lucide-react";
+import { Mic, MicOff, ArrowUp, Sparkles, X } from "lucide-react";
 
 interface MessageInputProps {
   roomId: string;
@@ -14,6 +14,7 @@ interface MessageInputProps {
   userAvatar?: string;
   aiResponding?: boolean;
   onAIInvoke: (content: string) => void;
+  onCancelAI?: () => void;
 }
 
 export function MessageInput({
@@ -23,6 +24,7 @@ export function MessageInput({
   userAvatar,
   aiResponding,
   onAIInvoke,
+  onCancelAI,
 }: MessageInputProps) {
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
@@ -125,10 +127,10 @@ export function MessageInput({
     <div className="px-4 pb-4 shrink-0">
       <div
         className="
-        rounded-xl border border-(--border2) bg-(--surface)
-        overflow-hidden transition-[border-color,box-shadow] duration-150
-        focus-within:border-(--border) focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_10%,transparent)]
-      "
+          rounded-xl border border-(--border2) bg-(--surface)
+          overflow-hidden transition-[border-color,box-shadow] duration-150
+          focus-within:border-(--border) focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_10%,transparent)]
+        "
       >
         {recording ? (
           <div className="flex items-center gap-3 px-3.5 py-3">
@@ -138,62 +140,76 @@ export function MessageInput({
             </span>
             <button
               onClick={stopRecording}
-              className="
-                flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium
-                bg-(--danger,#ef4444) text-white
-                transition-opacity hover:opacity-85
-              "
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-(--danger,#ef4444) text-white transition-opacity hover:opacity-85"
             >
               <MicOff size={12} />
               Stop
             </button>
           </div>
         ) : (
-          <>
-            <div className="flex items-end gap-2 px-3 pt-2.5 pb-2">
-              <textarea
-                ref={textareaRef}
-                value={content}
-                onChange={handleInput}
-                onKeyDown={handleKeyDown}
-                placeholder="Message the team… use @ai to invoke assistant"
-                rows={1}
-                className="
-                  flex-1 bg-transparent border-none outline-none resize-none
-                  text-(--text) placeholder:text-(--text3)
-                  text-[13.5px] leading-normal font-(--ff,sans-serif)
-                  min-h-5.5 max-h-40
-                "
-              />
+          <div className="flex flex-col">
+            <div className="flex items-end gap-2 px-3 pt-2.5 pb-1">
+              {aiResponding ? (
+                <div className="flex-1 flex items-center gap-2.5">
+                  <div className="flex gap-0.75">
+                    <span className="streaming-dot" />
+                    <span className="streaming-dot" />
+                    <span className="streaming-dot" />
+                  </div>
+                  <span className="text-[13.5px] text-(--ai,#5b9cf6)">
+                    Nexus is responding…
+                  </span>
+                </div>
+              ) : (
+                <textarea
+                  ref={textareaRef}
+                  value={content}
+                  onChange={handleInput}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Message the team… use @ai to invoke assistant"
+                  rows={1}
+                  className="
+                    flex-1 bg-transparent border-none outline-none resize-none
+                    text-(--text) placeholder:text-(--text3)
+                    text-[13.5px] leading-normal font-(--ff,sans-serif)
+                    min-h-5.5 max-h-40
+                  "
+                />
+              )}
 
-              <button
-                onClick={handleSend}
-                disabled={!canSend}
-                className={`
-                  w-7.5 h-7.5 rounded-lg shrink-0
-                  flex items-center justify-center
-                  transition-all duration-150
-                  ${
-                    canSend
-                      ? "bg-(--accent) text-black cursor-pointer hover:opacity-85 active:scale-95"
-                      : "bg-(--surface2) text-(--text3) cursor-not-allowed"
-                  }
-                `}
-              >
-                {sending ? (
-                  <div className="spinner w-3! h-3! border-[1.5px]! border-t-black! border-black/20!" />
-                ) : (
-                  <ArrowUp size={15} />
-                )}
-              </button>
+              {aiResponding ? (
+                <button
+                  onClick={onCancelAI}
+                  className="w-7.5 h-7.5 rounded-lg shrink-0 flex items-center justify-center transition-all duration-150 bg-(--danger,#ef4444) text-white cursor-pointer hover:opacity-85 active:scale-95"
+                  title="Stop AI response"
+                >
+                  <X size={15} />
+                </button>
+              ) : (
+                <button
+                  onClick={handleSend}
+                  disabled={!canSend}
+                  className={`
+                    w-7.5 h-7.5 rounded-lg shrink-0
+                    flex items-center justify-center
+                    transition-all duration-150
+                    ${
+                      canSend
+                        ? "bg-(--accent) text-black cursor-pointer hover:opacity-85 active:scale-95"
+                        : "bg-(--surface2) text-(--text3) cursor-not-allowed"
+                    }
+                  `}
+                >
+                  {sending ? (
+                    <div className="spinner w-3! h-3! border-[1.5px]! border-t-black! border-black/20!" />
+                  ) : (
+                    <ArrowUp size={15} />
+                  )}
+                </button>
+              )}
             </div>
 
-            <div
-              className="
-              flex items-center gap-0.5 px-2 py-1.5
-              border-t border-(--border)
-            "
-            >
+            <div className="flex items-center gap-0.5 px-2 py-1.5 border-t border-(--border)">
               <InputToolBtn onClick={startRecording} title="Voice input">
                 <Mic size={13} />
               </InputToolBtn>
@@ -222,22 +238,9 @@ export function MessageInput({
                 <span>newline</span>
               </div>
             </div>
-          </>
+          </div>
         )}
       </div>
-
-      {aiResponding && (
-        <div className="flex items-center gap-2 mt-2 px-1">
-          <div className="flex gap-0.75">
-            <span className="streaming-dot" />
-            <span className="streaming-dot" />
-            <span className="streaming-dot" />
-          </div>
-          <span className="text-[11.5px] text-(--ai,#5b9cf6)">
-            Nexus is responding…
-          </span>
-        </div>
-      )}
     </div>
   );
 }

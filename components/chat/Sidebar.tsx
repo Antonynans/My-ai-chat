@@ -160,9 +160,13 @@ export function Sidebar({
 
   const sidebarContent = (isMobile = false) => (
     <div className="flex flex-col h-full">
-      <div className="nx-sidebar-header">
-        <div className="nx-workspace-mark">N</div>
-        <span className="nx-workspace-name">Nexus</span>
+      <div className="flex items-center gap-2 px-3 h-[52px] border-b border-[var(--border)] shrink-0">
+        <div className="w-6 h-6 rounded-[7px] bg-[var(--accent)] flex items-center justify-center text-[11px] font-black text-black shrink-0 font-[var(--font-display,sans-serif)] tracking-[-0.5px]">
+          N
+        </div>
+        <span className="text-[13px] font-bold font-[var(--font-display,sans-serif)] tracking-[-0.2px] text-[var(--text)]">
+          Nexus
+        </span>
         <div className="flex items-center gap-0.5 ml-auto">
           <NxIconBtn
             title="Discover channels"
@@ -191,17 +195,20 @@ export function Sidebar({
       </div>
 
       {isInRoom && !isMobile && (
-        <button onClick={() => router.push("/chat")} className="nx-back-btn">
+        <button
+          onClick={() => router.push("/chat")}
+          className="flex items-center gap-1 mx-[10px] mt-2 mb-0.5 px-[10px] py-[5px] rounded-[7px] bg-transparent border border-[var(--border)] text-[var(--text3)] text-[11.5px] font-medium cursor-pointer transition-all duration-[140ms] hover:bg-[var(--surface)] hover:text-[var(--text)] hover:border-[var(--border2)]"
+        >
           <ChevronLeft size={13} />
           Home
         </button>
       )}
 
-      <nav className="nx-channel-list">
-        <div className="nx-section-label">
+      <nav className="flex-1 overflow-y-auto py-2 [scrollbar-width:thin] [scrollbar-color:var(--border)_transparent] [&::-webkit-scrollbar]:w-[3px] [&::-webkit-scrollbar-thumb]:bg-[var(--border)] [&::-webkit-scrollbar-thumb]:rounded-sm">
+        <div className="flex items-center justify-between px-3.5 pt-3 pb-[5px] text-[10px] font-bold tracking-[0.08em] uppercase text-[var(--text3)]">
           <span>Channels</span>
           <button
-            className="nx-section-add"
+            className="flex items-center justify-center w-5 h-5 rounded-[5px] bg-transparent border-none text-[var(--text3)] cursor-pointer transition-all duration-[140ms] hover:bg-[var(--surface)] hover:text-[var(--text)]"
             title="New channel"
             onClick={() => {
               setShowCreate(true);
@@ -214,14 +221,14 @@ export function Sidebar({
         </div>
 
         {serverRooms.length === 0 && (
-          <div className="nx-empty-state">
+          <div className="px-4 py-2 text-[11.5px] text-[var(--text3)]">
             No channels yet.{" "}
             <button
               onClick={() => {
                 setShowCreate(true);
                 if (isMobile) setMobileOpen(false);
               }}
-              className="nx-empty-cta"
+              className="bg-none border-none text-[var(--accent)] text-[11.5px] cursor-pointer p-0 transition-opacity duration-[120ms] hover:opacity-75"
             >
               Create one
             </button>
@@ -238,14 +245,28 @@ export function Sidebar({
               onClick={() => isMobile && setMobileOpen(false)}
             >
               <div
-                className={`nx-channel-item ${active ? "nx-channel-item--active" : ""}`}
+                className={[
+                  "flex items-center gap-[7px] px-3 py-[5px] mx-2 rounded-[7px] cursor-pointer transition-all duration-[120ms] relative min-w-0",
+                  active
+                    ? "bg-[color-mix(in_srgb,var(--accent)_12%,var(--surface))]"
+                    : "hover:bg-[var(--surface)]",
+                ].join(" ")}
               >
-                <Hash size={12} className="nx-channel-icon" />
-                <span className="nx-channel-name">{room.name}</span>
+                <Hash
+                  size={12}
+                  className={`shrink-0 ${active ? "text-[var(--text)]" : "text-[var(--text3)]"}`}
+                />
+                <span
+                  className={`text-[12.5px] font-medium flex-1 overflow-hidden text-ellipsis whitespace-nowrap transition-colors duration-[120ms] ${active ? "text-[var(--text)]" : "text-[var(--text2,#aaa)] group-hover:text-[var(--text)]"}`}
+                >
+                  {room.name}
+                </span>
                 {room.isPrivate && (
-                  <Lock size={10} className="nx-channel-lock" />
+                  <Lock size={10} className="text-[var(--text3)] shrink-0" />
                 )}
-                {active && <span className="nx-channel-pip" />}
+                {active && (
+                  <span className="w-[5px] h-[5px] rounded-full bg-[var(--accent)] shrink-0" />
+                )}
               </div>
             </Link>
           );
@@ -253,22 +274,24 @@ export function Sidebar({
 
         {discoverRooms.length > 0 && (
           <>
-            <div className="nx-section-label nx-section-label--sub">
+            <div className="flex items-center justify-between px-3.5 pt-4 pb-[5px] text-[10px] font-bold tracking-[0.08em] uppercase text-[color-mix(in_srgb,var(--text3)_65%,transparent)]">
               <span>Discover</span>
             </div>
             {discoverRooms.map((room) => (
               <div
                 key={room.id}
-                className="nx-channel-item nx-channel-item--discover"
+                className="flex items-center gap-[7px] px-3 py-[5px] mx-2 rounded-[7px] cursor-pointer transition-all duration-[120ms] relative min-w-0 opacity-65 hover:opacity-100 hover:bg-[var(--surface)]"
               >
-                <Hash size={12} className="nx-channel-icon" />
-                <span className="nx-channel-name">{room.name}</span>
+                <Hash size={12} className="text-[var(--text3)] shrink-0" />
+                <span className="text-[12.5px] font-medium text-[var(--text2,#aaa)] flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                  {room.name}
+                </span>
                 <button
                   onClick={() => {
                     if (isMobile) setMobileOpen(false);
                     handleJoin(room);
                   }}
-                  className="nx-join-pill"
+                  className="px-2 py-0.5 rounded-[20px] border border-[var(--border2)] bg-[var(--surface)] text-[var(--text2)] text-[10.5px] font-medium cursor-pointer shrink-0 transition-all duration-[120ms] whitespace-nowrap hover:bg-[var(--accent)] hover:border-[var(--accent)] hover:text-black"
                 >
                   Join
                 </button>
@@ -279,13 +302,13 @@ export function Sidebar({
       </nav>
 
       {onlineCount > 0 && (
-        <div className="nx-online-badge">
-          <span className="nx-online-dot" />
+        <div className="flex items-center gap-[5px] px-4 py-1.5 text-[10.5px] text-[var(--text3)]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--online,#4ade80)] shrink-0" />
           {onlineCount} online
         </div>
       )}
 
-      <div className="nx-user-footer">
+      <div className="flex items-center gap-[9px] px-3 py-2.5 border-t border-[var(--border)] shrink-0">
         <Avatar
           name={currentUserName}
           photoURL={currentUserAvatar}
@@ -293,9 +316,13 @@ export function Sidebar({
           showPresence
           isOnline
         />
-        <div className="nx-user-info">
-          <span className="nx-user-name">{currentUserName}</span>
-          <span className="nx-user-status">Active</span>
+        <div className="flex-1 min-w-0 flex flex-col gap-px">
+          <span className="text-[12.5px] font-semibold text-[var(--text)] overflow-hidden text-ellipsis whitespace-nowrap">
+            {currentUserName}
+          </span>
+          <span className="text-[10.5px] text-[var(--online,#4ade80)]">
+            Active
+          </span>
         </div>
         <NxIconBtn title="Sign out" onClick={onSignOut}>
           <LogOut size={13} />
@@ -307,491 +334,36 @@ export function Sidebar({
   return (
     <>
       <style>{`
-        /* ── CSS Variables (extend existing theme) ── */
-        :root {
-          --nx-sidebar-w: 232px;
-          --nx-radius: 8px;
-          --nx-header-h: 52px;
-          --nx-accent-glow: color-mix(in srgb, var(--accent) 25%, transparent);
-        }
-
-        /* ── Mobile toggle ── */
-        .nx-mobile-toggle {
-          display: none;
-          position: fixed;
-          z-index: 30;
-          left: 12px;
-          top: 12px;
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
-          border: 1px solid var(--border);
-          background: var(--sidebar, #1a1a1f);
-          color: var(--text);
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          font-size: 16px;
-          backdrop-filter: blur(8px);
-          transition: background 0.15s, border-color 0.15s;
-        }
-        @media (max-width: 767px) {
-          .nx-mobile-toggle { display: flex; }
-        }
-
-        /* ── Desktop sidebar shell ── */
-        .nx-sidebar-desktop {
-          display: none;
-          width: var(--nx-sidebar-w);
-          min-width: var(--nx-sidebar-w);
-          background: var(--sidebar, #111115);
-          border-right: 1px solid var(--border);
-          height: 100svh;
-          overflow: hidden;
-          flex-direction: column;
-        }
-        @media (min-width: 768px) {
-          .nx-sidebar-desktop { display: flex; }
-        }
-
-        /* ── Mobile overlay ── */
-        .nx-mobile-overlay {
-          position: fixed;
-          inset: 0;
-          z-index: 40;
-          background: rgba(0, 0, 0, 0.55);
-          backdrop-filter: blur(4px);
-          animation: nx-fade-in 0.18s ease;
-        }
-        .nx-mobile-drawer {
-          position: absolute;
-          left: 0;
-          top: 0;
-          bottom: 0;
-          width: 280px;
-          max-width: 88vw;
-          background: var(--sidebar, #111115);
-          border-right: 1px solid var(--border);
-          animation: nx-slide-in 0.22s cubic-bezier(0.22, 1, 0.36, 1);
-          overflow: hidden;
-        }
         @keyframes nx-fade-in { from { opacity: 0 } to { opacity: 1 } }
         @keyframes nx-slide-in { from { transform: translateX(-100%) } to { transform: translateX(0) } }
-
-        /* ── Header ── */
-        .nx-sidebar-header {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 0 12px;
-          height: var(--nx-header-h);
-          border-bottom: 1px solid var(--border);
-          flex-shrink: 0;
-        }
-        .nx-workspace-mark {
-          width: 24px;
-          height: 24px;
-          border-radius: 7px;
-          background: var(--accent);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 11px;
-          font-weight: 900;
-          color: #000;
-          flex-shrink: 0;
-          font-family: var(--font-display, sans-serif);
-          letter-spacing: -0.5px;
-        }
-        .nx-workspace-name {
-          font-size: 13px;
-          font-weight: 700;
-          font-family: var(--font-display, sans-serif);
-          letter-spacing: -0.2px;
-          color: var(--text);
-        }
-
-        /* ── Back button ── */
-        .nx-back-btn {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          margin: 8px 10px 2px;
-          padding: 5px 10px;
-          border-radius: 7px;
-          background: transparent;
-          border: 1px solid var(--border);
-          color: var(--text3);
-          font-size: 11.5px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.14s;
-        }
-        .nx-back-btn:hover {
-          background: var(--surface);
-          color: var(--text);
-          border-color: var(--border2);
-        }
-
-        /* ── Channel list scroll container ── */
-        .nx-channel-list {
-          flex: 1;
-          overflow-y: auto;
-          padding: 8px 0 4px;
-          scrollbar-width: thin;
-          scrollbar-color: var(--border) transparent;
-        }
-        .nx-channel-list::-webkit-scrollbar { width: 3px; }
-        .nx-channel-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-        /* ── Section label ── */
-        .nx-section-label {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 12px 14px 5px;
-          font-size: 10px;
-          font-weight: 700;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: var(--text3);
-        }
-        .nx-section-label--sub {
-          padding-top: 16px;
-          color: color-mix(in srgb, var(--text3) 65%, transparent);
-        }
-        .nx-section-add {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 20px;
-          height: 20px;
-          border-radius: 5px;
-          background: transparent;
-          border: none;
-          color: var(--text3);
-          cursor: pointer;
-          transition: all 0.14s;
-        }
-        .nx-section-add:hover {
-          background: var(--surface);
-          color: var(--text);
-        }
-
-        /* ── Channel item ── */
-        .nx-channel-item {
-          display: flex;
-          align-items: center;
-          gap: 7px;
-          padding: 5px 12px;
-          margin: 1px 8px;
-          border-radius: 7px;
-          cursor: pointer;
-          transition: all 0.12s;
-          position: relative;
-          min-width: 0;
-        }
-        .nx-channel-item:hover {
-          background: var(--surface);
-        }
-        .nx-channel-item--active {
-          background: color-mix(in srgb, var(--accent) 12%, var(--surface));
-        }
-        .nx-channel-item--active .nx-channel-icon,
-        .nx-channel-item--active .nx-channel-name {
-          color: var(--text) !important;
-        }
-        .nx-channel-item--discover {
-          opacity: 0.65;
-        }
-        .nx-channel-item--discover:hover { opacity: 1; }
-        .nx-channel-icon {
-          color: var(--text3);
-          flex-shrink: 0;
-        }
-        .nx-channel-name {
-          font-size: 12.5px;
-          font-weight: 500;
-          color: var(--text2, #aaa);
-          flex: 1;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          transition: color 0.12s;
-        }
-        .nx-channel-item:hover .nx-channel-name { color: var(--text); }
-        .nx-channel-lock { color: var(--text3); flex-shrink: 0; }
-        .nx-channel-pip {
-          width: 5px;
-          height: 5px;
-          border-radius: 50%;
-          background: var(--accent);
-          flex-shrink: 0;
-        }
-
-        /* ── Join pill ── */
-        .nx-join-pill {
-          padding: 2px 8px;
-          border-radius: 20px;
-          border: 1px solid var(--border2);
-          background: var(--surface);
-          color: var(--text2);
-          font-size: 10.5px;
-          font-weight: 500;
-          cursor: pointer;
-          flex-shrink: 0;
-          transition: all 0.12s;
-          white-space: nowrap;
-        }
-        .nx-join-pill:hover {
-          background: var(--accent);
-          border-color: var(--accent);
-          color: #000;
-        }
-
-        /* ── Empty state ── */
-        .nx-empty-state {
-          padding: 8px 16px;
-          font-size: 11.5px;
-          color: var(--text3);
-        }
-        .nx-empty-cta {
-          background: none;
-          border: none;
-          color: var(--accent);
-          font-size: 11.5px;
-          cursor: pointer;
-          padding: 0;
-          transition: opacity 0.12s;
-        }
-        .nx-empty-cta:hover { opacity: 0.75; }
-
-        /* ── Online badge ── */
-        .nx-online-badge {
-          display: flex;
-          align-items: center;
-          gap: 5px;
-          padding: 6px 16px;
-          font-size: 10.5px;
-          color: var(--text3);
-        }
-        .nx-online-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: var(--online, #4ade80);
-          flex-shrink: 0;
-        }
-
-        /* ── User footer ── */
-        .nx-user-footer {
-          display: flex;
-          align-items: center;
-          gap: 9px;
-          padding: 10px 12px;
-          border-top: 1px solid var(--border);
-          flex-shrink: 0;
-        }
-        .nx-user-info {
-          flex: 1;
-          min-width: 0;
-          display: flex;
-          flex-direction: column;
-          gap: 1px;
-        }
-        .nx-user-name {
-          font-size: 12.5px;
-          font-weight: 600;
-          color: var(--text);
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-        .nx-user-status {
-          font-size: 10.5px;
-          color: var(--online, #4ade80);
-        }
-
-        /* ── Icon button ── */
-        .nx-icon-btn {
-          width: 26px;
-          height: 26px;
-          border-radius: 7px;
-          border: none;
-          background: transparent;
-          color: var(--text3);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: all 0.12s;
-          flex-shrink: 0;
-        }
-        .nx-icon-btn:hover {
-          background: var(--surface);
-          color: var(--text);
-        }
-
-        /* ── Modal ── */
-        .nx-modal-backdrop {
-          position: fixed;
-          inset: 0;
-          z-index: 50;
-          background: rgba(0, 0, 0, 0.65);
-          backdrop-filter: blur(6px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-          animation: nx-fade-in 0.15s ease;
-        }
-        .nx-modal {
-          background: var(--sidebar, #111115);
-          border: 1px solid var(--border);
-          border-radius: 16px;
-          padding: 24px;
-          width: 100%;
-          max-width: 360px;
-          animation: nx-modal-in 0.22s cubic-bezier(0.22, 1, 0.36, 1);
-        }
         @keyframes nx-modal-in {
           from { opacity: 0; transform: scale(0.95) translateY(8px); }
-          to { opacity: 1; transform: scale(1) translateY(0); }
+          to   { opacity: 1; transform: scale(1)    translateY(0);   }
         }
-        .nx-modal-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 20px;
-        }
-        .nx-modal-title {
-          font-size: 14px;
-          font-weight: 700;
-          color: var(--text);
-          font-family: var(--font-display, sans-serif);
-        }
-        .nx-modal-close {
-          width: 26px;
-          height: 26px;
-          border-radius: 6px;
-          border: none;
-          background: var(--surface);
-          color: var(--text3);
-          font-size: 16px;
-          line-height: 1;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.12s;
-        }
-        .nx-modal-close:hover { background: var(--surface2); color: var(--text); }
-
-        /* ── Form elements ── */
-        .nx-field { display: flex; flex-direction: column; gap: 6px; }
-        .nx-label {
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
-          color: var(--text3);
-        }
-        .nx-input {
-          padding: 8px 12px;
-          border-radius: 9px;
-          border: 1px solid var(--border2);
-          background: var(--surface);
-          color: var(--text);
-          font-size: 13px;
-          font-family: inherit;
-          outline: none;
-          transition: border-color 0.14s, box-shadow 0.14s;
-          width: 100%;
-          box-sizing: border-box;
-        }
-        .nx-input:focus {
-          border-color: var(--accent);
-          box-shadow: 0 0 0 3px var(--nx-accent-glow);
-        }
-        .nx-submit-btn {
-          padding: 9px 16px;
-          border-radius: 9px;
-          border: none;
-          background: var(--accent);
-          color: #000;
-          font-size: 13px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: opacity 0.14s, transform 0.1s;
-          width: 100%;
-          font-family: inherit;
-        }
-        .nx-submit-btn:hover:not(:disabled) { opacity: 0.88; }
-        .nx-submit-btn:active:not(:disabled) { transform: scale(0.98); }
-        .nx-submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .nx-toggle-row {
-          display: flex;
-          align-items: center;
-          gap: 9px;
-          cursor: pointer;
-          font-size: 12.5px;
-          color: var(--text2);
-        }
-
-        /* ── Discover room card ── */
-        .nx-room-card {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 10px;
-          padding: 10px 12px;
-          border-radius: 10px;
-          border: 1px solid var(--border);
-          margin-bottom: 7px;
-          transition: border-color 0.14s, background 0.14s;
-        }
-        .nx-room-card:hover {
-          background: var(--surface);
-          border-color: var(--border2);
-        }
-        .nx-room-card-name { font-size: 13px; font-weight: 600; color: var(--text); }
-        .nx-room-card-desc { font-size: 11px; color: var(--text3); margin-top: 2px; }
-        .nx-room-card-meta { font-size: 10.5px; color: var(--text3); margin-top: 3px; }
-        .nx-search-row { display: flex; gap: 7px; margin-bottom: 14px; }
-        .nx-search-btn {
-          padding: 8px 14px;
-          border-radius: 9px;
-          border: 1px solid var(--border2);
-          background: var(--surface2);
-          color: var(--text);
-          font-size: 12.5px;
-          font-family: inherit;
-          cursor: pointer;
-          white-space: nowrap;
-          transition: all 0.14s;
-          flex-shrink: 0;
-        }
-        .nx-search-btn:hover { border-color: var(--accent); color: var(--accent); }
-        .nx-no-results { text-align: center; font-size: 12px; color: var(--text3); padding: 16px 0; }
+        .nx-anim-fade   { animation: nx-fade-in  0.15s ease; }
+        .nx-anim-slide  { animation: nx-slide-in 0.22s cubic-bezier(0.22, 1, 0.36, 1); }
+        .nx-anim-modal  { animation: nx-modal-in 0.22s cubic-bezier(0.22, 1, 0.36, 1); }
       `}</style>
 
       <button
-        className="nx-mobile-toggle"
+        className="flex md:hidden fixed z-30 left-3 top-3 w-9 h-9 rounded-[10px] border border-[var(--border)] bg-[var(--sidebar,#1a1a1f)] text-[var(--text)] items-center justify-center cursor-pointer text-base backdrop-blur-sm transition-all"
         onClick={() => setMobileOpen(true)}
         aria-label="Open channels"
       >
         <Hash size={16} />
       </button>
 
-      <aside className="nx-sidebar-desktop">{sidebarContent(false)}</aside>
+      <aside className="hidden md:flex flex-col w-[232px] min-w-[232px] bg-[var(--sidebar,#111115)] border-r border-[var(--border)] h-svh overflow-hidden">
+        {sidebarContent(false)}
+      </aside>
 
       {mobileOpen && (
         <div
-          className="nx-mobile-overlay md:hidden"
+          className="fixed inset-0 z-40 bg-black/55 backdrop-blur-sm md:hidden nx-anim-fade"
           onClick={() => setMobileOpen(false)}
         >
           <div
-            className="nx-mobile-drawer"
+            className="absolute left-0 top-0 bottom-0 w-[280px] max-w-[88vw] bg-[var(--sidebar,#111115)] border-r border-[var(--border)] overflow-hidden nx-anim-slide"
             onClick={(e) => e.stopPropagation()}
           >
             {sidebarContent(true)}
@@ -801,56 +373,51 @@ export function Sidebar({
 
       {showCreate && (
         <div
-          className="nx-modal-backdrop"
+          className="fixed inset-0 z-50 bg-black/65 backdrop-blur-md flex items-center justify-center p-5 nx-anim-fade"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowCreate(false);
           }}
         >
-          <div className="nx-modal">
-            <div className="nx-modal-header">
-              <span className="nx-modal-title">New channel</span>
+          <div className="bg-[var(--sidebar,#111115)] border border-[var(--border)] rounded-2xl p-6 w-full max-w-[360px] nx-anim-modal">
+            <div className="flex items-center justify-between mb-5">
+              <span className="text-sm font-bold text-[var(--text)] font-[var(--font-display,sans-serif)]">
+                New channel
+              </span>
               <button
-                className="nx-modal-close"
+                className="w-[26px] h-[26px] rounded-[6px] border-none bg-[var(--surface)] text-[var(--text3)] text-base leading-none cursor-pointer flex items-center justify-center transition-all duration-[120ms] hover:bg-[var(--surface2)] hover:text-[var(--text)]"
                 onClick={() => setShowCreate(false)}
               >
                 ×
               </button>
             </div>
-            <form
-              onSubmit={handleCreate}
-              style={{ display: "flex", flexDirection: "column", gap: 14 }}
-            >
-              <div className="nx-field">
-                <label className="nx-label">Channel name</label>
+            <form onSubmit={handleCreate} className="flex flex-col gap-3.5">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold tracking-[0.04em] uppercase text-[var(--text3)]">
+                  Channel name
+                </label>
                 <input
-                  className="nx-input"
+                  className="px-3 py-2 rounded-[9px] border border-[var(--border2)] bg-[var(--surface)] text-[var(--text)] text-[13px] font-[inherit] outline-none transition-all duration-[140ms] w-full box-border focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_25%,transparent)]"
                   value={newRoomName}
                   onChange={(e) => setNewRoomName(e.target.value)}
                   placeholder="e.g. deployments"
                   required
                 />
               </div>
-              <div className="nx-field">
-                <label className="nx-label">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold tracking-[0.04em] uppercase text-[var(--text3)]">
                   Description{" "}
-                  <span
-                    style={{
-                      fontWeight: 400,
-                      textTransform: "none",
-                      letterSpacing: 0,
-                    }}
-                  >
+                  <span className="font-normal normal-case tracking-normal">
                     (optional)
                   </span>
                 </label>
                 <input
-                  className="nx-input"
+                  className="px-3 py-2 rounded-[9px] border border-[var(--border2)] bg-[var(--surface)] text-[var(--text)] text-[13px] font-[inherit] outline-none transition-all duration-[140ms] w-full box-border focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_25%,transparent)]"
                   value={newRoomDesc}
                   onChange={(e) => setNewRoomDesc(e.target.value)}
                   placeholder="What's this channel for?"
                 />
               </div>
-              <label className="nx-toggle-row">
+              <label className="flex items-center gap-[9px] cursor-pointer text-[12.5px] text-[var(--text2)]">
                 <input
                   type="checkbox"
                   checked={isPrivate}
@@ -860,7 +427,7 @@ export function Sidebar({
               </label>
               <button
                 type="submit"
-                className="nx-submit-btn"
+                className="px-4 py-[9px] rounded-[9px] border-none bg-[var(--accent)] text-black text-[13px] font-semibold cursor-pointer transition-all duration-[140ms] w-full font-[inherit] hover:opacity-[0.88] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
                 disabled={creating || !newRoomName.trim()}
               >
                 {creating ? "Creating…" : "Create channel"}
@@ -872,24 +439,26 @@ export function Sidebar({
 
       {showDiscover && (
         <div
-          className="nx-modal-backdrop"
+          className="fixed inset-0 z-50 bg-black/65 backdrop-blur-md flex items-center justify-center p-5 nx-anim-fade"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowDiscover(false);
           }}
         >
-          <div className="nx-modal">
-            <div className="nx-modal-header">
-              <span className="nx-modal-title">Discover channels</span>
+          <div className="bg-[var(--sidebar,#111115)] border border-[var(--border)] rounded-2xl p-6 w-full max-w-[360px] nx-anim-modal">
+            <div className="flex items-center justify-between mb-5">
+              <span className="text-sm font-bold text-[var(--text)] font-[var(--font-display,sans-serif)]">
+                Discover channels
+              </span>
               <button
-                className="nx-modal-close"
+                className="w-[26px] h-[26px] rounded-[6px] border-none bg-[var(--surface)] text-[var(--text3)] text-base leading-none cursor-pointer flex items-center justify-center transition-all duration-[120ms] hover:bg-[var(--surface2)] hover:text-[var(--text)]"
                 onClick={() => setShowDiscover(false)}
               >
                 ×
               </button>
             </div>
-            <div className="nx-search-row">
+            <div className="flex gap-[7px] mb-3.5">
               <input
-                className="nx-input"
+                className="px-3 py-2 rounded-[9px] border border-[var(--border2)] bg-[var(--surface)] text-[var(--text)] text-[13px] font-[inherit] outline-none transition-all duration-[140ms] w-full box-border focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_25%,transparent)]"
                 value={searchQ}
                 onChange={(e) => {
                   setSearchQ(e.target.value);
@@ -904,28 +473,40 @@ export function Sidebar({
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 autoFocus
               />
-              <button className="nx-search-btn" onClick={handleSearch}>
+              <button
+                className="px-3.5 py-2 rounded-[9px] border border-[var(--border2)] bg-[var(--surface2)] text-[var(--text)] text-[12.5px] font-[inherit] cursor-pointer whitespace-nowrap shrink-0 transition-all duration-[140ms] hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                onClick={handleSearch}
+              >
                 Search
               </button>
             </div>
-            <div style={{ maxHeight: 320, overflowY: "auto" }}>
-              {searching && <div className="nx-no-results">Searching…</div>}
+            <div className="max-h-[320px] overflow-y-auto">
+              {searching && (
+                <div className="text-center text-[12px] text-[var(--text3)] py-4">
+                  Searching…
+                </div>
+              )}
               {!searching &&
                 searchResults.map((room) => (
-                  <div key={room.id} className="nx-room-card">
+                  <div
+                    key={room.id}
+                    className="flex items-center justify-between gap-2.5 px-3 py-2.5 rounded-[10px] border border-[var(--border)] mb-[7px] transition-all duration-[140ms] hover:bg-[var(--surface)] hover:border-[var(--border2)]"
+                  >
                     <div>
-                      <div className="nx-room-card-name">#{room.name}</div>
+                      <div className="text-[13px] font-semibold text-[var(--text)]">
+                        #{room.name}
+                      </div>
                       {room.description && (
-                        <div className="nx-room-card-desc">
+                        <div className="text-[11px] text-[var(--text3)] mt-0.5">
                           {room.description}
                         </div>
                       )}
-                      <div className="nx-room-card-meta">
+                      <div className="text-[10.5px] text-[var(--text3)] mt-[3px]">
                         {room.members.length} members
                       </div>
                     </div>
                     <button
-                      className="nx-join-pill"
+                      className="px-2 py-0.5 rounded-[20px] border border-[var(--border2)] bg-[var(--surface)] text-[var(--text2)] text-[10.5px] font-medium cursor-pointer shrink-0 transition-all duration-[120ms] whitespace-nowrap hover:bg-[var(--accent)] hover:border-[var(--accent)] hover:text-black"
                       onClick={() => handleJoin(room)}
                     >
                       Join
@@ -933,7 +514,7 @@ export function Sidebar({
                   </div>
                 ))}
               {!searching && searchResults.length === 0 && (
-                <div className="nx-no-results">
+                <div className="text-center text-[12px] text-[var(--text3)] py-4">
                   {searchQ ? "No channels found" : "No available channels"}
                 </div>
               )}
@@ -955,7 +536,11 @@ function NxIconBtn({
   children: React.ReactNode;
 }) {
   return (
-    <button onClick={onClick} title={title} className="nx-icon-btn">
+    <button
+      onClick={onClick}
+      title={title}
+      className="w-[26px] h-[26px] rounded-[7px] border-none bg-transparent text-[var(--text3)] flex items-center justify-center cursor-pointer transition-all duration-[120ms] shrink-0 hover:bg-[var(--surface)] hover:text-[var(--text)]"
+    >
       {children}
     </button>
   );

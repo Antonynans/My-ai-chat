@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback, use } from "react";
+import { useEffect, useState, useCallback, use, useMemo } from "react";
 import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { subscribeToMessages, subscribeToRoom } from "@/lib/firestore";
@@ -30,6 +30,7 @@ export default function RoomPage({ params }: PageProps) {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [jumpToMessageId, setJumpToMessageId] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
 
   const userId = session?.user?.id || "";
   const userName = session?.user?.name || session?.user?.email || "User";
@@ -73,6 +74,26 @@ export default function RoomPage({ params }: PageProps) {
     return unsub;
   }, [roomId, userId]);
 
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentTime(Date.now()), 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const onlineCount = useMemo(() => {
+    const fiveMinutesAgo = currentTime - 5 * 60 * 1000;
+    return (
+      room?.members.filter((uid) => {
+        if (presence[uid]?.online) return true;
+        const recentMessage = messages
+          .filter((msg) => msg.senderId === uid)
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+        return (
+          !!recentMessage && recentMessage.createdAt.getTime() > fiveMinutesAgo
+        );
+      }).length ?? 0
+    );
+  }, [room?.members, presence, messages, currentTime]);
+
   const handleAIInvoke = useCallback(
     async (triggerMessage: string) => {
       if (!room) return;
@@ -113,6 +134,23 @@ export default function RoomPage({ params }: PageProps) {
     [room, messages, roomId, userId, userName],
   );
 
+  const handleCancelAI = useCallback(async () => {
+    try {
+      const res = await fetch("/api/ai", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomId }),
+      });
+      if (!res.ok) {
+        toast.error("Failed to cancel AI response");
+      } else {
+        toast.success("AI response cancelled");
+      }
+    } catch {
+      toast.error("Failed to cancel AI response");
+    }
+  }, [roomId]);
+
   if (notFound) {
     return (
       <div className="flex-1 flex flex-col items-center gap-3 text-(--text3)">
@@ -129,10 +167,6 @@ export default function RoomPage({ params }: PageProps) {
       </div>
     );
   }
-
-  const onlineCount = room.members.filter(
-    (uid) => presence[uid]?.online,
-  ).length;
 
   return (
     <div className="flex-1 flex overflow-hidden">
@@ -161,11 +195,17 @@ export default function RoomPage({ params }: PageProps) {
           userAvatar={userAvatar}
           aiResponding={room.aiResponding}
           onAIInvoke={handleAIInvoke}
+          onCancelAI={handleCancelAI}
         />
       </div>
 
       {membersOpen && (
-        <MembersPanel room={room} presence={presence} currentUserId={userId} />
+        <MembersPanel
+          room={room}
+          presence={presence}
+          currentUserId={userId}
+          messages={messages}
+        />
       )}
     </div>
   );

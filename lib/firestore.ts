@@ -215,6 +215,18 @@ export async function joinRoom(
   });
 }
 
+export async function addUserToRoom(
+  roomId: string,
+  userId: string,
+  userName: string,
+) {
+  const ref = doc(db, "rooms", roomId);
+  await updateDoc(ref, {
+    members: arrayUnion(userId),
+    [`memberNames.${userId}`]: userName,
+  });
+}
+
 export async function leaveRoom(roomId: string, userId: string) {
   const ref = doc(db, "rooms", roomId);
   await updateDoc(ref, {

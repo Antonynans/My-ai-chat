@@ -1,49 +1,101 @@
-import { Room, PresenceData } from "@/lib/types";
+import { Room, PresenceData, Message } from "@/lib/types";
 import { Avatar } from "@/components/ui/Avatar";
-import { useState } from "react";
-import { sendInvite, leaveRoom, deleteRoom } from "@/lib/firestore";
+import { useState, useEffect } from "react";
+import { addUserToRoom, leaveRoom, deleteRoom } from "@/lib/firestore";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { UserPlus, LogOut, Sparkles, Trash2 } from "lucide-react";
+import { UserPlus, LogOut, Sparkles, Trash2, Search, X } from "lucide-react";
 
 interface MembersPanelProps {
   room: Room;
   presence: Record<string, PresenceData>;
   currentUserId: string;
+  messages?: Message[];
+}
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  image?: string;
 }
 
 export function MembersPanel({
   room,
   presence,
   currentUserId,
+  messages = [],
 }: MembersPanelProps) {
   const [showInvite, setShowInvite] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [sendingInvite, setSendingInvite] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [availableUsers, setAvailableUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [addingUser, setAddingUser] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const router = useRouter();
 
-  async function handleSendInvite(e?: React.FormEvent) {
-    e?.preventDefault();
-    const email = inviteEmail.trim().toLowerCase();
-    if (!email) return toast.error("Enter an email");
-    setSendingInvite(true);
+  useEffect(() => {
+    if (showInvite && availableUsers.length === 0) {
+      fetchUsers();
+    }
+  }, [showInvite]);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredUsers([]);
+      return;
+    }
+
+    const filtered = availableUsers
+      .filter(
+        (user) =>
+          user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          user.email.toLowerCase().includes(searchQuery.toLowerCase()),
+      )
+      .filter((user) => !room.members.includes(user.id));
+
+    setFilteredUsers(filtered);
+  }, [searchQuery, availableUsers, room.members]);
+
+  async function fetchUsers() {
     try {
-      await sendInvite(
-        room.id,
-        room.name,
-        email,
-        currentUserId,
-        room.memberNames?.[currentUserId] || "",
-      );
-      toast.success(`Invite sent to ${email}`);
-      setInviteEmail("");
+      const resp = await fetch("/api/users", { credentials: "include" });
+      if (!resp.ok) throw new Error("Failed to fetch users");
+      const data = await resp.json();
+      setAvailableUsers(data.users || []);
+    } catch (err) {
+      console.error("Failed to fetch users:", err);
+      toast.error("Failed to load users");
+    }
+  }
+
+  async function handleAddUser() {
+    if (!selectedUser) return;
+
+    setAddingUser(true);
+    try {
+      await addUserToRoom(room.id, selectedUser.id, selectedUser.name);
+      toast.success(`Added ${selectedUser.name} to the room`);
+      setSelectedUser(null);
+      setSearchQuery("");
       setShowInvite(false);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to send invite");
+      toast.error(err instanceof Error ? err.message : "Failed to add user");
     } finally {
-      setSendingInvite(false);
+      setAddingUser(false);
     }
+  }
+
+  function handleUserSelect(user: User) {
+    setSelectedUser(user);
+    setSearchQuery(user.name);
+    setFilteredUsers([]);
+  }
+
+  function clearSelection() {
+    setSelectedUser(null);
+    setSearchQuery("");
   }
 
   function confirmDeleteRoom(): Promise<boolean> {
@@ -51,7 +103,6 @@ export function MembersPanel({
       toast.custom(
         (toastObj) => (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
-            {/* Backdrop */}
             <div
               className={`absolute inset-0 bg-black transition-opacity duration-200 ${
                 toastObj.visible ? "opacity-50" : "opacity-0"
@@ -62,21 +113,18 @@ export function MembersPanel({
               }}
             />
 
-            {/* Modal */}
             <div
               className={`fixed top-1/5 z-10 w-full max-w-sm mx-4 rounded-2xl border border-(--border2) bg-(--surface) p-6 shadow-2xl
           transition-all duration-200
           ${toastObj.visible ? "scale-100 opacity-100" : "scale-95 opacity-0"}
         `}
             >
-              {/* Icon */}
               <div className="flex justify-center mb-4">
                 <div className="p-3 rounded-full bg-[color-mix(in_srgb,#f59e0b_12%,transparent)]">
                   <Trash2 size={24} className="text-[#f59e0b]" />
                 </div>
               </div>
 
-              {/* Content */}
               <h3 className="text-center text-lg font-bold text-(--text) mb-2">
                 Delete Channel
               </h3>
@@ -88,7 +136,6 @@ export function MembersPanel({
                 and all its messages. This action cannot be undone.
               </p>
 
-              {/* Buttons */}
               <div className="flex gap-3">
                 <button
                   onClick={() => {
@@ -124,13 +171,29 @@ export function MembersPanel({
   }
 
   const members = room.members
-    .map((uid) => ({
-      uid,
-      name: room.memberNames?.[uid] || "Unknown",
-      presence: presence[uid],
-      isOnline: presence[uid]?.online ?? false,
-      isCurrent: uid === currentUserId,
-    }))
+    .map((uid) => {
+      //
+      let isOnline = presence[uid]?.online ?? false;
+
+      if (!isOnline) {
+        const recentMessage = messages
+          .filter((msg) => msg.senderId === uid)
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+
+        if (recentMessage) {
+          const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+          isOnline = recentMessage.createdAt.getTime() > fiveMinutesAgo;
+        }
+      }
+
+      return {
+        uid,
+        name: room.memberNames?.[uid] || "Unknown",
+        presence: presence[uid],
+        isOnline,
+        isCurrent: uid === currentUserId,
+      };
+    })
     .sort((a, b) => {
       if (a.isOnline && !b.isOnline) return -1;
       if (!a.isOnline && b.isOnline) return 1;
@@ -175,56 +238,109 @@ export function MembersPanel({
 
       {showInvite && (
         <form
-          onSubmit={handleSendInvite}
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (selectedUser) handleAddUser();
+          }}
           className="mx-3 mt-3 mb-3 p-3 rounded-lg border border-(--border2) bg-(--surface2) flex flex-col gap-2.5"
         >
           <div>
             <label className="text-[10px] font-semibold text-(--text2) block mb-1.5 uppercase tracking-wider">
-              Invite by email
+              Add member
             </label>
-            <input
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              placeholder="user@example.com"
-              type="email"
-              autoFocus
-              className="
-                w-full px-2.5 py-2 rounded-md text-[12px]
-                bg-(--surface) border border-(--border)
-                text-(--text) placeholder:text-(--text3)
-                outline-none focus:border-(--accent) focus:ring-1 focus:ring-[color-mix(in_srgb,var(--accent)_20%,transparent)]
-                transition-all
-              "
-            />
-          </div>
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={sendingInvite || !inviteEmail.trim()}
-              className="
-                flex-1 px-2.5 py-2 rounded-md text-[11.5px] font-semibold
-                bg-(--accent) text-black
-                disabled:opacity-50 disabled:cursor-not-allowed
-                transition-all hover:opacity-90 active:scale-95
-              "
-            >
-              {sendingInvite ? "Sending…" : "Invite"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowInvite(false);
-                setInviteEmail("");
-              }}
-              className="
-                px-2.5 py-2 rounded-md text-[11.5px] font-medium
-                bg-transparent border border-(--border2)
-                text-(--text3) hover:text-(--text2) hover:bg-(--surface)
-                transition-all
-              "
-            >
-              Close
-            </button>
+            <div className="relative">
+              <div className="flex items-center gap-2">
+                <Search size={14} className="text-(--text3) shrink-0" />
+                <input
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    if (selectedUser && e.target.value !== selectedUser.name) {
+                      setSelectedUser(null);
+                    }
+                  }}
+                  placeholder="Search users..."
+                  autoFocus
+                  className="
+                    flex-1 px-2.5 py-2 rounded-md text-[12px]
+                    bg-(--surface) border border-(--border)
+                    text-(--text) placeholder:text-(--text3)
+                    outline-none focus:border-(--accent) focus:ring-1 focus:ring-[color-mix(in_srgb,var(--accent)_20%,transparent)]
+                    transition-all
+                  "
+                />
+                {selectedUser && (
+                  <button
+                    type="button"
+                    onClick={clearSelection}
+                    className="p-1 rounded-md hover:bg-(--surface3) transition-colors"
+                  >
+                    <X size={14} className="text-(--text3)" />
+                  </button>
+                )}
+              </div>
+
+              {filteredUsers.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-(--surface) border border-(--border) rounded-md shadow-lg z-10 max-h-48 overflow-y-auto">
+                  {filteredUsers.map((user) => (
+                    <button
+                      key={user.id}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handleUserSelect(user);
+                      }}
+                      className="w-full px-3 py-2 text-left hover:bg-(--surface2) transition-colors flex items-center gap-2"
+                    >
+                      <Avatar
+                        name={user.name}
+                        photoURL={user.image}
+                        size={20}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[12px] font-medium text-(--text) truncate">
+                          {user.name}
+                        </div>
+                        <div className="text-[10px] text-(--text3) truncate">
+                          {user.email}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2 mt-2">
+              <button
+                type="submit"
+                disabled={addingUser || !selectedUser}
+                className="
+                  flex-1 px-2.5 py-2 rounded-md text-[11.5px] font-semibold
+                  bg-(--accent) text-black
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  transition-all hover:opacity-90 active:scale-95
+                "
+              >
+                {addingUser ? "Adding…" : "Add to Room"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowInvite(false);
+                  setSearchQuery("");
+                  setSelectedUser(null);
+                  setFilteredUsers([]);
+                }}
+                className="
+                  px-2.5 py-2 rounded-md text-[11.5px] font-medium
+                  bg-transparent border border-(--border2)
+                  text-(--text3) hover:text-(--text2) hover:bg-(--surface)
+                  transition-all
+                "
+              >
+                Close
+              </button>
+            </div>
           </div>
         </form>
       )}

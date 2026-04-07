@@ -1,44 +1,83 @@
-import { getInitials, generateAvatarColor } from '@/lib/utils'
+import { getInitials, generateAvatarColor } from "@/lib/utils";
+import Image from "next/image";
+import { useState } from "react";
 
 interface AvatarProps {
-  name: string
-  photoURL?: string
-  size?: number
-  showPresence?: boolean
-  isOnline?: boolean
-  isAway?: boolean
+  name: string;
+  photoURL?: string;
+  size?: number;
+  showPresence?: boolean;
+  isOnline?: boolean;
+  isAway?: boolean;
 }
 
-export function Avatar({ name, photoURL, size = 32, showPresence, isOnline, isAway }: AvatarProps) {
-  const initials = getInitials(name)
-  const color = generateAvatarColor(name)
-  const dotSize = Math.max(8, size * 0.28)
+export function Avatar({
+  name,
+  photoURL,
+  size = 32,
+  showPresence,
+  isOnline,
+  isAway,
+}: AvatarProps) {
+  const initials = getInitials(name);
+  const color = generateAvatarColor(name);
+  const dotSize = Math.max(8, size * 0.28);
+  const [imageError, setImageError] = useState(false);
 
   return (
-    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
-      {photoURL ? (
-        <img
-          src={photoURL} alt={name}
-          style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', display: 'block' }}
-        />
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      {photoURL && photoURL.trim() && !imageError ? (
+        <>
+          <Image
+            src={photoURL}
+            alt={name}
+            fill
+            sizes={`${size}px`}
+            onError={() => setImageError(true)}
+            className="rounded-full object-cover"
+          />
+
+          <div
+            className="avatar-fallback absolute inset-0 hidden items-center justify-center rounded-full text-white/90 font-semibold"
+            style={{
+              background: color,
+              fontSize: size * 0.34,
+              fontFamily: "var(--ff-display)",
+            }}
+          >
+            {initials}
+          </div>
+        </>
       ) : (
-        <div style={{
-          width: size, height: size, borderRadius: '50%', background: color,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: size * 0.34, fontWeight: '600', color: 'rgba(255,255,255,0.9)',
-          fontFamily: 'var(--ff-display)',
-        }}>
+        <div
+          className="w-full h-full flex items-center justify-center rounded-full text-white/90 font-semibold"
+          style={{
+            background: color,
+            fontSize: size * 0.34,
+            fontFamily: "var(--ff-display)",
+          }}
+        >
           {initials}
         </div>
       )}
+
       {showPresence && (
-        <div style={{
-          position: 'absolute', bottom: -1, right: -1,
-          width: dotSize, height: dotSize, borderRadius: '50%',
-          background: isOnline ? 'var(--online)' : isAway ? 'var(--away)' : 'var(--text3)',
-          border: `2px solid var(--sidebar)`,
-        }} />
+        <div
+          className="absolute rounded-full border-2"
+          style={{
+            bottom: -1,
+            right: -1,
+            width: dotSize,
+            height: dotSize,
+            background: isOnline
+              ? "var(--online)"
+              : isAway
+                ? "var(--away)"
+                : "var(--text3)",
+            borderColor: "var(--sidebar)",
+          }}
+        />
       )}
     </div>
-  )
+  );
 }
