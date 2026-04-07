@@ -8,7 +8,7 @@ import {
   off,
 } from "firebase/database";
 import { rtdb } from "./firebase";
-import type { PresenceData, TypingUser } from "./types";
+import type { PresenceData, TypingUser, ReadReceipt } from "./types";
 
 export function setupPresence(uid: string, displayName: string) {
   const presenceRef = ref(rtdb, `presence/${uid}`);
@@ -111,4 +111,85 @@ export function subscribeToTyping(
     callback(typingUsers);
   });
   return () => off(typingRef);
+}
+
+// ── Read Receipts ──────────────────────────────────────────
+
+export function markRoomRead(
+  roomId: string,
+  userId: string,
+  lastReadMessageId: string,
+) {
+  const receiptRef = ref(rtdb, `readReceipts/${roomId}/${userId}`);
+  set(receiptRef, {
+    lastReadMessageId,
+    lastReadAt: Date.now(),
+  });
+}
+
+export function subscribeToRoomReceipts(
+  roomId: string,
+  callback: (receipts: Record<string, ReadReceipt>) => void,
+): () => void {
+  const receiptsRef = ref(rtdb, `readReceipts/${roomId}`);
+  onValue(receiptsRef, (snap) => {
+    const data = snap.val() as Record<
+      string,
+      { lastReadMessageId: string; lastReadAt: number }
+    > | null;
+    if (!data) {
+      callback({});
+      return;
+    }
+    const receipts: Record<string, ReadReceipt> = {};
+    for (const [uid, val] of Object.entries(data)) {
+      receipts[uid] = { userId: uid, ...val };
+    }
+    callback(receipts);
+  });
+  return () => off(receiptsRef);
+}
+
+// For the sidebar — subscribe to receipts for ALL rooms at once
+export function subscribeToAllReceipts(
+  roomIds: string[],
+  userId: string,
+  callback: (unreadRoomIds: Set<string>) => void,
+): () => void {
+  if (roomIds.length === 0) {
+    callback(new Set());
+    return () => {};
+  }
+
+  // We track each room's receipt state in a map and recompute on any change
+  const state: Record<
+    string,
+    { myLastRead: string | null; latestMsgId: string | null }
+  > = {};
+  const unsubs: Array<() => void> = [];
+
+  function recompute() {
+    const unread = new Set<string>();
+    for (const [roomId, s] of Object.entries(state)) {
+      if (s.latestMsgId && s.myLastRead !== s.latestMsgId) {
+        unread.add(roomId);
+      }
+    }
+    callback(unread);
+  }
+
+  for (const roomId of roomIds) {
+    state[roomId] = { myLastRead: null, latestMsgId: null };
+
+    // Watch this user's receipt for the room
+    const myRef = ref(rtdb, `readReceipts/${roomId}/${userId}`);
+    onValue(myRef, (snap) => {
+      const val = snap.val() as { lastReadMessageId: string } | null;
+      state[roomId].myLastRead = val?.lastReadMessageId ?? null;
+      recompute();
+    });
+    unsubs.push(() => off(myRef));
+  }
+
+  return () => unsubs.forEach((u) => u());
 }

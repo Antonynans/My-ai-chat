@@ -31,6 +31,8 @@ A production-grade collaborative chat application built with Next.js 16, Firebas
 - Syne (display) + Figtree (body) — distinctive, non-generic font pairing
 - Dark/light mode toggle with system preference detection and localStorage persistence
 - Dark-first, fully responsive
+- Read receipts per-room
+- Notification system (browser push)
 
 ---
 
@@ -48,6 +50,7 @@ A production-grade collaborative chat application built with Next.js 16, Firebas
 - Messages appear instantly via Firestore `onSnapshot` listeners
 - **Typing indicators** — RTDB-backed, auto-clear after 3s inactivity
 - **Presence system** — online/offline with `onDisconnect()` for drop detection
+- **Browser push notifications** for new messages when the chat is backgrounded
 - Infinite scroll / pagination (load older messages on scroll-to-top)
 - Date dividers, message grouping (same sender within 5min)
 - Optimistic send (message appears immediately, Firestore confirms async)
@@ -211,5 +214,3 @@ Open [http://localhost:3000](http://localhost:3000)
 - Admin panel for user/room management
 - Integration with Slack/Discord webhooks
 - Mobile app (React Native)ations
-- Notification system (browser push + email digest)
-- Read receipts per-room

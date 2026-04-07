@@ -15,6 +15,7 @@ import {
   authenticateWithFirebase,
   signOutFromFirebase,
 } from "@/lib/firebase-auth";
+import { subscribeToAllReceipts } from "@/lib/presence";
 import toast from "react-hot-toast";
 
 export default function ChatLayout({
@@ -31,6 +32,8 @@ export default function ChatLayout({
   const [presence, setLocalPresence] = useState<Record<string, PresenceData>>(
     {},
   );
+  const [unreadRoomIds, setUnreadRoomIds] = useState<Set<string>>(new Set());
+  const userId = session?.user?.id || "";
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -62,6 +65,15 @@ export default function ChatLayout({
       console.error("Claim invites failed", err);
     }
   }
+
+  useEffect(() => {
+  if (!userId || rooms.length === 0) return;
+  return subscribeToAllReceipts(
+    rooms.map((r) => r.id),
+    userId,
+    setUnreadRoomIds,
+  );
+}, [rooms.map(r => r.id).join(","), userId]);
 
   useEffect(() => {
     if (isPending) return;
@@ -200,6 +212,7 @@ export default function ChatLayout({
         currentUserAvatar={session.user.image || undefined}
         presence={presence}
         onSignOut={handleSignOut}
+        unreadRoomIds={unreadRoomIds}
       />
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
         {children}

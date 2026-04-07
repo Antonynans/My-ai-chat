@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useEffect } from "react";
 import { Room, Message } from "@/lib/types";
 import { searchMessages } from "@/lib/firestore";
-import { Search, Users, Hash, Lock, X } from "lucide-react";
+import { Search, Users, Hash, Lock, X, Bell } from "lucide-react";
 
 interface ChatHeaderProps {
   room: Room;
@@ -12,6 +12,9 @@ interface ChatHeaderProps {
   membersOpen: boolean;
   onJumpToMessage?: (messageId: string) => void;
   onJumpToStart?: () => void;
+  notificationsEnabled: boolean;
+  notificationPermission: NotificationPermission;
+  onToggleNotifications: () => void;
 }
 
 export function ChatHeader({
@@ -21,6 +24,9 @@ export function ChatHeader({
   membersOpen,
   onJumpToMessage,
   onJumpToStart,
+  notificationsEnabled,
+  notificationPermission,
+  onToggleNotifications,
 }: ChatHeaderProps) {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQ, setSearchQ] = useState("");
@@ -115,6 +121,28 @@ export function ChatHeader({
               <span className="w-1.5 h-1.5 rounded-full bg-(--online,#4ade80) shrink-0" />
               <span>{onlineCount}</span>
               <span className="hidden sm:inline">&nbsp;online</span>
+            </button>
+
+            <button
+              title={
+                notificationsEnabled
+                  ? "Disable notifications"
+                  : notificationPermission === "denied"
+                    ? "Notifications blocked"
+                    : "Enable notifications"
+              }
+              onClick={onToggleNotifications}
+              className={`
+              w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+              transition-all duration-120 border-none cursor-pointer
+              ${
+                notificationsEnabled
+                  ? "bg-[color-mix(in_srgb,var(--accent)_12%,var(--surface))] text-[var(--accent)]"
+                  : "bg-transparent text-(--text3) hover:bg-(--surface) hover:text-(--text)"
+              }
+            `}
+            >
+              <Bell size={14} />
             </button>
 
             <button
