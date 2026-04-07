@@ -11,6 +11,7 @@ interface ChatHeaderProps {
   onToggleMembers: () => void;
   membersOpen: boolean;
   onJumpToMessage?: (messageId: string) => void;
+  onJumpToStart?: () => void;
 }
 
 export function ChatHeader({
@@ -19,6 +20,7 @@ export function ChatHeader({
   onToggleMembers,
   membersOpen,
   onJumpToMessage,
+  onJumpToStart,
 }: ChatHeaderProps) {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQ, setSearchQ] = useState("");
@@ -73,12 +75,19 @@ export function ChatHeader({
       <div className="flex flex-col border-b border-(--border) shrink-0 bg-(--sidebar,#111115)">
         <div className="flex items-center gap-2 px-4 h-13 max-sm:pl-12">
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
-            <span className="text-(--text3) shrink-0 flex items-center">
-              {room.isPrivate ? <Lock size={14} /> : <Hash size={14} />}
-            </span>
-            <span className="text-[14px] font-bold text-(--text) truncate tracking-[-0.2px]">
-              {room.name}
-            </span>
+            <button
+              onClick={onJumpToStart}
+              title="Jump to start of conversation"
+              className="flex items-center gap-1.5 min-w-0 rounded-md px-1.5 -mx-1.5 py-0.5 text-(--text3) hover:text-(--text2) transition-colors duration-120 cursor-pointer disabled:cursor-default"
+              disabled={!onJumpToStart}
+            >
+              <span className="shrink-0 flex items-center">
+                {room.isPrivate ? <Lock size={14} /> : <Hash size={14} />}
+              </span>
+              <span className="text-[14px] font-bold text-(--text) truncate tracking-[-0.2px]">
+                {room.name}
+              </span>
+            </button>
             {room.description && (
               <>
                 <span className="w-px h-3.5 bg-(--border2) shrink-0 hidden sm:block" />
@@ -151,7 +160,7 @@ export function ChatHeader({
         {showSearch && (
           <div className="px-4 pb-3 flex flex-col gap-2 transition-opacity duration-200 ease-out">
             <form onSubmit={handleSearch} className="flex gap-1.5">
-              <div className="nx-search-input-wrap">
+              <div className="w-full">
                 <Search
                   size={13}
                   className="absolute left-2.5 top-1/2 -translate-y-1/2 text-(--text3) pointer-events-none"

@@ -60,7 +60,7 @@ export default function RegisterPage() {
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
         <div className="absolute -top-1/5 -right-1/10 w-150 h-150 rounded-full bg-[radial-gradient(circle,rgba(200,169,110,0.06)_0%,transparent_70%)]" />
         <div className="absolute -bottom-1/5 -left-1/10 w-125 h-125 rounded-full bg-[radial-gradient(circle,rgba(91,156,246,0.05)_0%,transparent_70%)]" />
-        <div className="absolute inset-0 opacity-30 bg-[linear-gradient(var(--border)_1px,transparent_1px),linear-gradient(90deg,var(--border)_1px,transparent_1px)] bg-[size:40px_40px]" />
+        <div className="absolute inset-0 opacity-30 bg-[linear-gradient(var(--border)_1px,transparent_1px),linear-gradient(90deg,var(--border)_1px,transparent_1px)] bg-size-[40px_40px]" />
       </div>
 
       <div className="flex-1 flex items-start md:items-center justify-center px-6 py-12 relative z-10">
@@ -158,11 +158,11 @@ export default function RegisterPage() {
             </form>
           </div>
 
-          <p className="text-center text-sm text-[var(--text3)]">
+          <p className="text-center text-sm text-(--text3)">
             Already have an account?{" "}
             <Link
               href="/auth/login"
-              className="text-[var(--accent)] font-medium"
+              className="text-(--accent) font-medium"
             >
               Sign in
             </Link>
@@ -170,9 +170,9 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      <div className="hidden lg:flex flex-col justify-center w-[380px] px-12 py-16 border-l border-[var(--border)] relative z-10 gap-10">
+      <div className="hidden lg:flex flex-col justify-center w-95 px-12 py-16 border-l border-(--border) relative z-10 gap-10">
         <div>
-          <div className="text-xs font-semibold tracking-widest uppercase text-[var(--accent)] mb-3">
+          <div className="text-xs font-semibold tracking-widest uppercase text-(--accent) mb-3">
             What you get
           </div>
           <div className="text-2xl font-bold leading-snug">
@@ -205,14 +205,14 @@ export default function RegisterPage() {
           ].map(({ icon, title, desc, color }) => (
             <div key={title} className="flex gap-4 items-start">
               <div
-                className="w-8 h-8 rounded-lg bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-sm"
+                className="w-8 h-8 rounded-lg bg-(--surface) border border-(--border) flex items-center justify-center text-sm"
                 style={{ color }}
               >
                 {icon}
               </div>
               <div>
                 <div className="text-sm font-semibold mb-1">{title}</div>
-                <div className="text-xs text-[var(--text3)] leading-relaxed">
+                <div className="text-xs text-(--text3) leading-relaxed">
                   {desc}
                 </div>
               </div>
@@ -247,7 +247,7 @@ function Field({
     <div className="space-y-1.5">
       <label
         className={`block text-xs font-medium transition ${
-          focused ? "text-[var(--accent)]" : "text-[var(--text2)]"
+          focused ? "text-(--accent)" : "text-(--text2)"
         }`}
       >
         {label}
@@ -262,8 +262,8 @@ function Field({
         onBlur={onBlur}
         className={`w-full px-3 py-3 rounded-xl border text-sm outline-none transition ${
           focused
-            ? "border-[var(--accent)] bg-[rgba(200,169,110,0.04)]"
-            : "border-[var(--border2)] bg-[var(--surface)]"
+            ? "border-(--accent) bg-[rgba(200,169,110,0.04)"
+            : "border-(--border2) bg-(--surface)"
         }`}
       />
     </div>

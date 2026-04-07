@@ -1,9 +1,18 @@
 "use client";
-import { useEffect, useRef, useState, useCallback } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import { Message, TypingUser } from "@/lib/types";
 import { MessageItem } from "./MessageItem";
 import { formatDateDivider, isSameDay } from "@/lib/utils";
 import { loadMoreMessages } from "@/lib/firestore";
+import { ChevronsUp } from "lucide-react";
 
 interface MessageListProps {
   messages: Message[];
@@ -14,22 +23,26 @@ interface MessageListProps {
   onJumpHandled?: () => void;
 }
 
-export function MessageList({
-  messages,
-  typingUsers,
-  roomId,
-  jumpToMessageId,
-  onJumpHandled,
-}: MessageListProps) {
+export const MessageList = forwardRef<
+  { jumpToStart: () => void },
+  MessageListProps
+>(function MessageList(
+  { messages, typingUsers, roomId, jumpToMessageId, onJumpHandled },
+  ref,
+) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [olderMessages, setOlderMessages] = useState<Message[]>([]);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [showJumpBtn, setShowJumpBtn] = useState(false);
   const isNearBottom = useRef(true);
 
-  const allMessages = [...olderMessages, ...messages];
+  const allMessages = useMemo(
+    () => [...olderMessages, ...messages],
+    [olderMessages, messages],
+  );
 
   useEffect(() => {
     if (isNearBottom.current) {
@@ -56,6 +69,7 @@ export function MessageList({
     const el = e.currentTarget;
     const fromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     isNearBottom.current = fromBottom < 100;
+    setShowJumpBtn(el.scrollTop > 300); // ← add this line
     if (el.scrollTop < 80 && !loadingMore && hasMore) loadMore();
   }
 
@@ -78,6 +92,15 @@ export function MessageList({
     if (msg.isAIResponse !== prev.isAIResponse) return false;
     return msg.createdAt.getTime() - prev.createdAt.getTime() < 5 * 60 * 1000;
   }
+
+  const jumpToStart = useCallback(async () => {
+    while (hasMore) {
+      await loadMore();
+    }
+    containerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, [hasMore, loadMore]);
+
+  useImperativeHandle(ref, () => ({ jumpToStart }), [jumpToStart]);
 
   return (
     <>
@@ -113,54 +136,64 @@ export function MessageList({
         className="
           flex-1 overflow-y-auto flex flex-col pt-4 pb-2
           [scrollbar-width:thin] [scrollbar-color:var(--border)_transparent]
-          [&::-webkit-scrollbar]:w-[3px]
-          [&::-webkit-scrollbar-thumb]:bg-[var(--border)]
+          [&::-webkit-scrollbar]:w-0.75
+          [&::-webkit-scrollbar-thumb]:bg-(--border)
           [&::-webkit-scrollbar-thumb]:rounded-full
         "
       >
-        {/* Load more */}
         {loadingMore && (
           <div className="flex justify-center py-4">
             <div className="spinner" />
           </div>
         )}
 
-        {/* Beginning */}
         {!hasMore && allMessages.length > 0 && (
           <div className="flex flex-col items-center gap-1 px-6 py-8">
-            <div className="w-9 h-9 rounded-full bg-[var(--surface2)] flex items-center justify-center text-base mb-1">💬</div>
-            <p className="text-[11.5px] font-semibold text-[var(--text3)]">Beginning of conversation</p>
-          </div>
-        )}
-
-        {/* Empty state */}
-        {allMessages.length === 0 && (
-          <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
-            <div className="w-14 h-14 rounded-2xl mb-4 flex items-center justify-center text-2xl bg-[var(--surface)] border border-[var(--border)]">💬</div>
-            <p className="text-[13.5px] font-semibold text-[var(--text2)] mb-1">No messages yet</p>
-            <p className="text-[12px] text-[var(--text3)] leading-relaxed max-w-[220px]">
-              Be the first to say something! Use{" "}
-              <code className="ai-mention text-[11px]">@ai</code> to invoke the assistant.
+            <div className="w-9 h-9 rounded-full bg-(--surface2) flex items-center justify-center text-base mb-1">
+              💬
+            </div>
+            <p className="text-[11.5px] font-semibold text-(--text3)">
+              Beginning of conversation
             </p>
           </div>
         )}
 
-        {/* Messages */}
+        {allMessages.length === 0 && (
+          <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
+            <div className="w-14 h-14 rounded-2xl mb-4 flex items-center justify-center text-2xl bg-(--surface) border border-(--border)">
+              💬
+            </div>
+            <p className="text-[13.5px] font-semibold text-(--text2) mb-1">
+              No messages yet
+            </p>
+            <p className="text-[12px] text-(--text3) leading-relaxed max-w-55">
+              Be the first to say something! Use{" "}
+              <code className="ai-mention text-[11px]">@ai</code> to invoke the
+              assistant.
+            </p>
+          </div>
+        )}
+
         {allMessages.map((msg, i) => {
           const prev = allMessages[i - 1];
-          const showDateDivider = !prev || !isSameDay(msg.createdAt, prev.createdAt);
+          const showDateDivider =
+            !prev || !isSameDay(msg.createdAt, prev.createdAt);
           const grouped = isGrouped(msg, prev);
           const isHighlighted = highlightedId === msg.id;
 
           return (
-            <div key={msg.id} id={`msg-${msg.id}`} className={isHighlighted ? "nx-msg-highlighted" : ""}>
+            <div
+              key={msg.id}
+              id={`msg-${msg.id}`}
+              className={isHighlighted ? "nx-msg-highlighted" : ""}
+            >
               {showDateDivider && (
                 <div className="flex items-center gap-3 px-5 py-3 my-1">
-                  <div className="flex-1 h-px bg-[var(--border)]" />
-                  <span className="text-[10.5px] font-medium text-[var(--text3)] whitespace-nowrap px-2 py-0.5 rounded-full border border-[var(--border)] bg-[var(--surface)]">
+                  <div className="flex-1 h-px bg-(--border)" />
+                  <span className="text-[10.5px] font-medium text-(--text3) whitespace-nowrap px-2 py-0.5 rounded-full border border-(--border) bg-(--surface)">
                     {formatDateDivider(msg.createdAt)}
                   </span>
-                  <div className="flex-1 h-px bg-[var(--border)]" />
+                  <div className="flex-1 h-px bg-(--border)" />
                 </div>
               )}
               <MessageItem message={msg} isGrouped={grouped} />
@@ -168,22 +201,22 @@ export function MessageList({
           );
         })}
 
-        {/* ── Typing indicator ── */}
         {typingUsers.length > 0 && (
-          <div className="
+          <div
+            className="
             mx-3 my-1.5 flex items-center gap-3 px-3 py-2.5 rounded-xl
-            bg-[var(--surface)] border border-[var(--border)]
+            bg-(--surface) border border-(--border)
             animate-fade-in
-          ">
-            {/* Animated avatar stack */}
+          "
+          >
             <div className="flex -space-x-1.5 shrink-0">
               {typingUsers.slice(0, 3).map((u) => (
                 <div
                   key={u.uid ?? u.displayName}
                   className="
                     w-6 h-6 rounded-full flex items-center justify-center
-                    bg-[var(--surface2)] border-2 border-[var(--sidebar)]
-                    text-[10px] font-bold text-[var(--text2)] uppercase
+                    bg-(--surface2) border-2 border-(--sidebar)
+                    text-[10px] font-bold text-(--text2) uppercase
                   "
                 >
                   {u.displayName?.[0] ?? "?"}
@@ -191,31 +224,45 @@ export function MessageList({
               ))}
             </div>
 
-            {/* Dots + text */}
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              <div className="flex gap-[3px] items-center text-[var(--text3)]">
+              <div className="flex gap-0.75 items-center text-(--text3)">
                 <span className="nx-typing-dot" />
                 <span className="nx-typing-dot" />
                 <span className="nx-typing-dot" />
               </div>
-              <span className="text-[12px] text-[var(--text3)] truncate">
-                <span className="font-semibold text-[var(--text2)]">
+              <span className="text-[12px] text-(--text3) truncate">
+                <span className="font-semibold text-(--text2)">
                   {typingUsers.length === 1
                     ? typingUsers[0].displayName
                     : typingUsers.length === 2
                       ? `${typingUsers[0].displayName} & ${typingUsers[1].displayName}`
-                      : `${typingUsers[0].displayName} & ${typingUsers.length - 1} others`
-                  }
-                </span>
-                {" "}
+                      : `${typingUsers[0].displayName} & ${typingUsers.length - 1} others`}
+                </span>{" "}
                 {typingUsers.length === 1 ? "is typing…" : "are typing…"}
               </span>
             </div>
           </div>
         )}
-
+        {showJumpBtn && (
+          <button
+            onClick={jumpToStart}
+            className="
+      sticky bottom-4 self-end mr-4
+      flex items-center gap-1.5 px-3 py-1.5
+      rounded-full text-[11.5px] font-medium
+      bg-(--surface) border border-(--border2)
+      text-(--text2) shadow-sm
+      transition-all duration-150
+      hover:bg-(--surface2) hover:border-(--border) hover:text-(--text)
+      active:scale-95
+    "
+          >
+            <ChevronsUp size={12} />
+            Jump to start
+          </button>
+        )}
         <div ref={bottomRef} />
       </div>
     </>
   );
-}
+});

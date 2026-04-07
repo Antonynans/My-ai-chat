@@ -24,13 +24,18 @@ export default function ChatLayout({
 }) {
   const router = useRouter();
   const { data: session, isPending } = useSession();
-  const { setCurrentUser, setRooms, setPublicRooms, setPresence } =
+  const { setCurrentUser, setRooms, setPublicRooms, setPresence, theme } =
     useChatStore();
   const [rooms, setLocalRooms] = useState<Room[]>([]);
   const [publicRooms, setLocalPublicRooms] = useState<Room[]>([]);
   const [presence, setLocalPresence] = useState<Record<string, PresenceData>>(
     {},
   );
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
 
   async function claimInvites(user: { id: string; email?: string | null }) {
     try {

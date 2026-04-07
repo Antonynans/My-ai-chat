@@ -242,7 +242,7 @@ export function MembersPanel({
             e.preventDefault();
             if (selectedUser) handleAddUser();
           }}
-          className="mx-3 mt-3 mb-3 p-3 rounded-lg border border-(--border2) bg-(--surface2) flex flex-col gap-2.5"
+          className="m-3 p-3 rounded-lg border border-(--border2) bg-(--surface2) flex flex-col gap-2.5"
         >
           <div>
             <label className="text-[10px] font-semibold text-(--text2) block mb-1.5 uppercase tracking-wider">
