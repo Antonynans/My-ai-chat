@@ -10,6 +10,8 @@ import { ChatHeader } from "@/components/chat/ChatHeader";
 import { MessageList } from "@/components/chat/MessageList";
 import { MessageInput } from "@/components/chat/MessageInput";
 import { MembersPanel } from "@/components/chat/MembersPanel";
+import { subscribeToRoomReceipts } from "@/lib/presence";
+import type { ReadReceipt } from "@/lib/types";
 import type { Room, Message, TypingUser } from "@/lib/types";
 import toast from "react-hot-toast";
 
@@ -31,6 +33,19 @@ export default function RoomPage({ params }: PageProps) {
   const [notFound, setNotFound] = useState(false);
   const [jumpToMessageId, setJumpToMessageId] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(() => Date.now());
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    if (typeof Notification === "undefined") return false;
+    const saved = localStorage.getItem("notificationsEnabled") === "true";
+    const permission = Notification.permission;
+    return saved && permission === "granted";
+  });
+  const [notificationPermission, setNotificationPermission] =
+    useState<NotificationPermission>(() => {
+      if (typeof Notification === "undefined") return "default";
+      return Notification.permission;
+    });
+  const previousMessagesRef = useRef<Message[]>([]);
+  const [receipts, setReceipts] = useState<Record<string, ReadReceipt>>({});
 
   const userId = session?.user?.id || "";
   const userName = session?.user?.name || session?.user?.email || "User";
@@ -80,6 +95,86 @@ export default function RoomPage({ params }: PageProps) {
     const interval = setInterval(() => setCurrentTime(Date.now()), 10000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!roomId) return;
+    return subscribeToRoomReceipts(roomId, setReceipts);
+  }, [roomId]);
+
+  useEffect(() => {
+    if (!notificationsEnabled || !room || !messages.length) {
+      previousMessagesRef.current = messages;
+      return;
+    }
+
+    if (typeof document === "undefined" || !document.hidden) {
+      previousMessagesRef.current = messages;
+      return;
+    }
+
+    const lastMessage = messages[messages.length - 1];
+    const previousLast =
+      previousMessagesRef.current[previousMessagesRef.current.length - 1];
+
+    if (!lastMessage || lastMessage.senderId === userId) {
+      previousMessagesRef.current = messages;
+      return;
+    }
+
+    if (previousLast?.id === lastMessage.id) {
+      return;
+    }
+
+    const title = `#${room.name}`;
+    const body = `${lastMessage.senderName}: ${lastMessage.content}`.slice(
+      0,
+      100,
+    );
+
+    try {
+      new Notification(title, {
+        body,
+        tag: roomId,
+      });
+    } catch (err) {
+      console.error("Failed to show notification", err);
+    }
+
+    previousMessagesRef.current = messages;
+  }, [messages, notificationsEnabled, room, roomId, userId]);
+
+  const requestNotificationPermission = useCallback(async () => {
+    if (typeof Notification === "undefined") {
+      toast.error(
+        "Browser notifications are not supported in this environment.",
+      );
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+
+    const enabled = permission === "granted";
+    setNotificationsEnabled(enabled);
+    localStorage.setItem("notificationsEnabled", String(enabled));
+
+    if (enabled) {
+      toast.success("Browser notifications enabled");
+    } else {
+      toast.error("Notifications not enabled");
+    }
+  }, []);
+
+  const toggleNotifications = useCallback(() => {
+    if (notificationsEnabled) {
+      setNotificationsEnabled(false);
+      localStorage.setItem("notificationsEnabled", "false");
+      toast.success("Notifications disabled");
+      return;
+    }
+
+    requestNotificationPermission();
+  }, [notificationsEnabled, requestNotificationPermission]);
 
   const onlineCount = useMemo(() => {
     const fiveMinutesAgo = currentTime - 5 * 60 * 1000;
@@ -180,6 +275,9 @@ export default function RoomPage({ params }: PageProps) {
           onJumpToMessage={(id: string) => setJumpToMessageId(id)}
           membersOpen={membersOpen}
           onJumpToStart={() => messageListRef.current?.jumpToStart()}
+          notificationsEnabled={notificationsEnabled}
+          notificationPermission={notificationPermission}
+          onToggleNotifications={toggleNotifications}
         />
 
         <MessageList
@@ -187,9 +285,12 @@ export default function RoomPage({ params }: PageProps) {
           typingUsers={typingUsers}
           roomId={roomId}
           currentUserId={userId}
+          currentUserName={userName}
           jumpToMessageId={jumpToMessageId}
           onJumpHandled={() => setJumpToMessageId(null)}
           ref={messageListRef}
+          receipts={receipts}
+          memberNames={room.memberNames ?? {}}
         />
 
         <MessageInput

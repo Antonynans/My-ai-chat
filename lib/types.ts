@@ -57,3 +57,9 @@ export interface AIInvocation {
   triggerMessageId: string
   context: { role: 'user' | 'assistant'; content: string }[]
 }
+
+export interface ReadReceipt {
+  userId: string
+  lastReadMessageId: string
+  lastReadAt: number
+}

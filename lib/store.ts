@@ -38,6 +38,9 @@ interface ChatStore {
 
   theme: "dark" | "light";
   setTheme: (theme: "dark" | "light") => void;
+
+  unreadRoomIds: Set<string>;
+  setUnreadRoomIds: (ids: Set<string>) => void;
 }
 
 export const useChatStore = create<ChatStore>((set) => ({
@@ -96,4 +99,7 @@ export const useChatStore = create<ChatStore>((set) => ({
 
   theme: "dark",
   setTheme: (theme) => set({ theme }),
+
+  unreadRoomIds: new Set<string>(),
+  setUnreadRoomIds: (ids: Set<string>) => set({ unreadRoomIds: ids }),
 }));

@@ -25,6 +25,7 @@ interface SidebarProps {
   currentUserAvatar?: string;
   presence: Record<string, PresenceData>;
   onSignOut: () => void;
+  unreadRoomIds?: Set<string>;
 }
 
 export function Sidebar({
@@ -35,6 +36,7 @@ export function Sidebar({
   currentUserAvatar,
   presence,
   onSignOut,
+  unreadRoomIds,
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -259,6 +261,9 @@ export function Sidebar({
                 </span>
                 {room.isPrivate && (
                   <Lock size={10} className="text-(--text3) shrink-0" />
+                )}
+                {!active && unreadRoomIds?.has(room.id) && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-(--accent) shrink-0" />
                 )}
                 {active && (
                   <span className="w-1.25 h-1.25 rounded-full bg-(--accent) shrink-0" />
