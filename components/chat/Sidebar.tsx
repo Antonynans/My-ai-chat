@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Room, PresenceData } from "@/lib/types";
 import { Avatar } from "@/components/ui/Avatar";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { createRoom } from "@/lib/firestore";
 import {
   LogOut,
@@ -167,6 +168,7 @@ export function Sidebar({
           Nexus
         </span>
         <div className="flex items-center gap-0.5 ml-auto">
+          <ThemeToggle />
           <NxIconBtn
             title="Discover channels"
             onClick={() => {
@@ -176,15 +178,7 @@ export function Sidebar({
           >
             <Compass size={14} />
           </NxIconBtn>
-          <NxIconBtn
-            title="Sign out"
-            onClick={() => {
-              if (isMobile) setMobileOpen(false);
-              onSignOut();
-            }}
-          >
-            <LogOut size={14} />
-          </NxIconBtn>
+
           {isMobile && (
             <NxIconBtn title="Close" onClick={() => setMobileOpen(false)}>
               <X size={14} />
@@ -322,9 +316,7 @@ export function Sidebar({
           <span className="text-[12.5px] font-semibold text-(--text) overflow-hidden text-ellipsis whitespace-nowrap">
             {currentUserName}
           </span>
-          <span className="text-[10.5px] text-(--online,#4ade80)">
-            Active
-          </span>
+          <span className="text-[10.5px] text-(--online,#4ade80)">Active</span>
         </div>
         <NxIconBtn title="Sign out" onClick={onSignOut}>
           <LogOut size={13} />

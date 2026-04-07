@@ -29,6 +29,7 @@ A production-grade collaborative chat application built with Next.js 16, Firebas
 
 - Custom design system using CSS variables — no component library lock-in
 - Syne (display) + Figtree (body) — distinctive, non-generic font pairing
+- Dark/light mode toggle with system preference detection and localStorage persistence
 - Dark-first, fully responsive
 
 ---
@@ -77,7 +78,6 @@ A production-grade collaborative chat application built with Next.js 16, Firebas
 
 ---
 
-
 ### AI Streaming Flow
 
 1. Client detects `@ai` in sent message
@@ -110,22 +110,25 @@ A production-grade collaborative chat application built with Next.js 16, Firebas
 **Firestore security rules:**
 
 ```
+
 rules_version = '2';
 service cloud.firestore {
-  match /databases/{database}/documents {
-    match /rooms/{roomId} {
-      allow read: if request.auth != null && request.auth.uid in resource.data.members;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && request.auth.uid in resource.data.members;
+match /databases/{database}/documents {
+match /rooms/{roomId} {
+allow read: if request.auth != null && request.auth.uid in resource.data.members;
+allow create: if request.auth != null;
+allow update: if request.auth != null && request.auth.uid in resource.data.members;
 
       match /messages/{msgId} {
         allow read, write: if request.auth != null
           && request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.members;
       }
     }
-  }
+
 }
-```
+}
+
+`````
 
 ### 2. Environment Variables
 
@@ -166,7 +169,7 @@ GOOGLE_CLIENT_SECRET=
 # App URL
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
-````
+`````
 
 ---
 

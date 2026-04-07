@@ -35,6 +35,9 @@ interface ChatStore {
   setSidebarOpen: (open: boolean) => void;
   membersOpen: boolean;
   setMembersOpen: (open: boolean) => void;
+
+  theme: "dark" | "light";
+  setTheme: (theme: "dark" | "light") => void;
 }
 
 export const useChatStore = create<ChatStore>((set) => ({
@@ -90,4 +93,7 @@ export const useChatStore = create<ChatStore>((set) => ({
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
   membersOpen: false,
   setMembersOpen: (open) => set({ membersOpen: open }),
+
+  theme: "dark",
+  setTheme: (theme) => set({ theme }),
 }));
