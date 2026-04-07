@@ -194,9 +194,12 @@ export function Sidebar({
         </div>
       </div>
 
-      {isInRoom && !isMobile && (
+      {isInRoom && (
         <button
-          onClick={() => router.push("/chat")}
+          onClick={() => {
+            router.push("/chat");
+            if (isMobile) setMobileOpen(false);
+          }}
           className="flex items-center gap-1 mx-[10px] mt-2 mb-0.5 px-[10px] py-[5px] rounded-[7px] bg-transparent border border-[var(--border)] text-[var(--text3)] text-[11.5px] font-medium cursor-pointer transition-all duration-[140ms] hover:bg-[var(--surface)] hover:text-[var(--text)] hover:border-[var(--border2)]"
         >
           <ChevronLeft size={13} />
