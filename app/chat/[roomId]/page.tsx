@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback, use, useMemo } from "react";
+import { useEffect, useState, useCallback, use, useMemo, useRef } from "react";
 import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { subscribeToMessages, subscribeToRoom } from "@/lib/firestore";
@@ -35,6 +35,8 @@ export default function RoomPage({ params }: PageProps) {
   const userId = session?.user?.id || "";
   const userName = session?.user?.name || session?.user?.email || "User";
   const userAvatar = session?.user?.image || undefined;
+
+  const messageListRef = useRef<{ jumpToStart: () => void }>(null);
 
   useEffect(() => {
     if (!userId || !roomId) return;
@@ -177,6 +179,7 @@ export default function RoomPage({ params }: PageProps) {
           onToggleMembers={() => setMembersOpen((o) => !o)}
           onJumpToMessage={(id: string) => setJumpToMessageId(id)}
           membersOpen={membersOpen}
+          onJumpToStart={() => messageListRef.current?.jumpToStart()}
         />
 
         <MessageList
@@ -186,6 +189,7 @@ export default function RoomPage({ params }: PageProps) {
           currentUserId={userId}
           jumpToMessageId={jumpToMessageId}
           onJumpHandled={() => setJumpToMessageId(null)}
+          ref={messageListRef}
         />
 
         <MessageInput

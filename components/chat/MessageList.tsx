@@ -1,9 +1,18 @@
 "use client";
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import { Message, TypingUser } from "@/lib/types";
 import { MessageItem } from "./MessageItem";
 import { formatDateDivider, isSameDay } from "@/lib/utils";
 import { loadMoreMessages } from "@/lib/firestore";
+import { ChevronsUp } from "lucide-react";
 
 interface MessageListProps {
   messages: Message[];
@@ -14,24 +23,25 @@ interface MessageListProps {
   onJumpHandled?: () => void;
 }
 
-export function MessageList({
-  messages,
-  typingUsers,
-  roomId,
-  jumpToMessageId,
-  onJumpHandled,
-}: MessageListProps) {
+export const MessageList = forwardRef<
+  { jumpToStart: () => void },
+  MessageListProps
+>(function MessageList(
+  { messages, typingUsers, roomId, jumpToMessageId, onJumpHandled },
+  ref,
+) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [olderMessages, setOlderMessages] = useState<Message[]>([]);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [showJumpBtn, setShowJumpBtn] = useState(false);
   const isNearBottom = useRef(true);
 
   const allMessages = useMemo(
     () => [...olderMessages, ...messages],
-    [olderMessages, messages]
+    [olderMessages, messages],
   );
 
   useEffect(() => {
@@ -59,6 +69,7 @@ export function MessageList({
     const el = e.currentTarget;
     const fromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     isNearBottom.current = fromBottom < 100;
+    setShowJumpBtn(el.scrollTop > 300); // ← add this line
     if (el.scrollTop < 80 && !loadingMore && hasMore) loadMore();
   }
 
@@ -81,6 +92,15 @@ export function MessageList({
     if (msg.isAIResponse !== prev.isAIResponse) return false;
     return msg.createdAt.getTime() - prev.createdAt.getTime() < 5 * 60 * 1000;
   }
+
+  const jumpToStart = useCallback(async () => {
+    while (hasMore) {
+      await loadMore();
+    }
+    containerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, [hasMore, loadMore]);
+
+  useImperativeHandle(ref, () => ({ jumpToStart }), [jumpToStart]);
 
   return (
     <>
@@ -121,14 +141,12 @@ export function MessageList({
           [&::-webkit-scrollbar-thumb]:rounded-full
         "
       >
-        {/* Load more */}
         {loadingMore && (
           <div className="flex justify-center py-4">
             <div className="spinner" />
           </div>
         )}
 
-        {/* Beginning */}
         {!hasMore && allMessages.length > 0 && (
           <div className="flex flex-col items-center gap-1 px-6 py-8">
             <div className="w-9 h-9 rounded-full bg-(--surface2) flex items-center justify-center text-base mb-1">
@@ -140,7 +158,6 @@ export function MessageList({
           </div>
         )}
 
-        {/* Empty state */}
         {allMessages.length === 0 && (
           <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
             <div className="w-14 h-14 rounded-2xl mb-4 flex items-center justify-center text-2xl bg-(--surface) border border-(--border)">
@@ -157,7 +174,6 @@ export function MessageList({
           </div>
         )}
 
-        {/* Messages */}
         {allMessages.map((msg, i) => {
           const prev = allMessages[i - 1];
           const showDateDivider =
@@ -185,7 +201,6 @@ export function MessageList({
           );
         })}
 
-        {/* ── Typing indicator ── */}
         {typingUsers.length > 0 && (
           <div
             className="
@@ -194,7 +209,6 @@ export function MessageList({
             animate-fade-in
           "
           >
-            {/* Animated avatar stack */}
             <div className="flex -space-x-1.5 shrink-0">
               {typingUsers.slice(0, 3).map((u) => (
                 <div
@@ -210,7 +224,6 @@ export function MessageList({
               ))}
             </div>
 
-            {/* Dots + text */}
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <div className="flex gap-0.75 items-center text-(--text3)">
                 <span className="nx-typing-dot" />
@@ -230,9 +243,26 @@ export function MessageList({
             </div>
           </div>
         )}
-
+        {showJumpBtn && (
+          <button
+            onClick={jumpToStart}
+            className="
+      sticky bottom-4 self-end mr-4
+      flex items-center gap-1.5 px-3 py-1.5
+      rounded-full text-[11.5px] font-medium
+      bg-(--surface) border border-(--border2)
+      text-(--text2) shadow-sm
+      transition-all duration-150
+      hover:bg-(--surface2) hover:border-(--border) hover:text-(--text)
+      active:scale-95
+    "
+          >
+            <ChevronsUp size={12} />
+            Jump to start
+          </button>
+        )}
         <div ref={bottomRef} />
       </div>
     </>
   );
-}
+});
