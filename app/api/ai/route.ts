@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions"; 
 import Groq from "groq-sdk";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import {
@@ -8,15 +9,16 @@ import {
   adminSetAIResponding,
 } from "@/lib/firestore-admin";
 
+
+export const maxDuration = 60;
+
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-
-const DEFAULT_AI_PROVIDER = process.env.AI_PROVIDER || "groq"; // "groq" or "gemini"
-const DEFAULT_GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-13b-standard";
+const DEFAULT_AI_PROVIDER = process.env.AI_PROVIDER || "groq";
+const DEFAULT_GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
 const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 const SYSTEM_PROMPT = `You are Nexus, an intelligent AI assistant embedded in a professional team workspace chat. You are helpful, concise, and technically capable.
-
 Key behaviors:
 - You respond as a knowledgeable team member, not as a generic AI
 - Keep responses focused and actionable — this is a chat, not a document
@@ -30,7 +32,6 @@ const RATE_LIMIT_MS = 3000;
 export async function POST(req: NextRequest) {
   try {
     const { roomId, messages, userId } = await req.json();
-
     if (!roomId || !messages || !userId) {
       return NextResponse.json(
         { error: "Missing required fields" },
@@ -48,9 +49,7 @@ export async function POST(req: NextRequest) {
     roomLastInvocation.set(roomId, Date.now());
 
     const existingController = activeRequests.get(roomId);
-    if (existingController) {
-      existingController.abort();
-    }
+    if (existingController) existingController.abort();
 
     const abortController = new AbortController();
     activeRequests.set(roomId, abortController);
@@ -58,81 +57,56 @@ export async function POST(req: NextRequest) {
     const aiMessageId = await adminCreateAIMessageDoc(roomId);
     await adminSetAIResponding(roomId, true);
 
-    const streamPromise =
-      DEFAULT_AI_PROVIDER === "gemini"
-        ? streamGeminiResponse(
-            roomId,
-            aiMessageId,
-            messages,
-            abortController.signal,
-          )
-        : streamGroqResponse(
-            roomId,
-            aiMessageId,
-            messages,
-            abortController.signal,
-          );
+    const streamFn =
+      DEFAULT_AI_PROVIDER === "gemini" ? streamGeminiResponse : streamGroqResponse;
 
-    streamPromise
+    const streamPromise = streamFn(
+      roomId,
+      aiMessageId,
+      messages,
+      abortController.signal,
+    )
       .catch(async (err) => {
-        if (err.name === "AbortError") {
+        if (err.name === "AbortError" || err.message === "Request cancelled") {
           console.log(`AI request cancelled for room ${roomId}`);
-          await adminUpdateAIMessage(
-            roomId,
-            aiMessageId,
-            "Request cancelled.",
-            false,
-            false,
-          );
+          await adminUpdateAIMessage(roomId, aiMessageId, "Request cancelled.", false, false);
         } else {
           console.error(`${DEFAULT_AI_PROVIDER} stream error:`, err);
-          await adminUpdateAIMessage(
-            roomId,
-            aiMessageId,
-            "Failed to generate response.",
-            false,
-            true,
-          );
+          await adminUpdateAIMessage(roomId, aiMessageId, "Failed to generate response.", false, true);
         }
         await adminSetAIResponding(roomId, false);
-        activeRequests.delete(roomId);
       })
-      .then(() => {
+      .finally(() => {
+        
         activeRequests.delete(roomId);
       });
+
+    
+    waitUntil(streamPromise);
 
     return NextResponse.json({ messageId: aiMessageId, status: "streaming" });
   } catch (err) {
     console.error("AI route error:", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
 export async function DELETE(req: NextRequest) {
   try {
     const { roomId } = await req.json();
-
     if (!roomId) {
       return NextResponse.json({ error: "Missing roomId" }, { status: 400 });
     }
-
     const controller = activeRequests.get(roomId);
     if (controller) {
       controller.abort();
       activeRequests.delete(roomId);
     }
-
     await adminSetAIResponding(roomId, false);
     return NextResponse.json({ status: "cancelled" });
   } catch (err) {
     console.error("AI cancel error:", err);
-    return NextResponse.json(
-      { error: "Failed to cancel AI request" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to cancel AI request" }, { status: 500 });
   }
 }
 
@@ -142,56 +116,41 @@ async function streamGroqResponse(
   contextMessages: { role: "user" | "assistant"; content: string }[],
   abortSignal: AbortSignal,
 ) {
-  try {
-    const stream = await groq.chat.completions.create({
-      model: DEFAULT_GROQ_MODEL,
-      max_tokens: 800,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        ...contextMessages,
-      ],
-      stream: true,
-    });
+  const stream = await groq.chat.completions.create({
+    model: DEFAULT_GROQ_MODEL,
+    max_tokens: 2048, 
+    messages: [{ role: "system", content: SYSTEM_PROMPT }, ...contextMessages],
+    stream: true,
+  });
 
-    let fullContent = "";
-    let lastUpdate = Date.now();
-    let firstUpdate = true;
+  let fullContent = "";
+  let lastUpdate = Date.now();
+  let firstUpdate = true;
 
-    for await (const chunk of stream) {
-      if (abortSignal.aborted) {
-        throw new Error("Request cancelled");
-      }
+  for await (const chunk of stream) {
+    if (abortSignal.aborted) throw new Error("Request cancelled");
 
-      const delta = chunk.choices[0]?.delta?.content || "";
-      if (!delta) continue;
+    const delta = chunk.choices[0]?.delta?.content || "";
+    if (!delta) continue;
+    fullContent += delta;
 
-      fullContent += delta;
+    const now = Date.now();
+    const shouldUpdate =
+      (firstUpdate && (now - lastUpdate > 50 || fullContent.length > 50)) ||
+      (!firstUpdate && now - lastUpdate > 150);
 
-      const now = Date.now();
-
-      const shouldUpdate =
-        (firstUpdate && (now - lastUpdate > 50 || fullContent.length > 50)) ||
-        (!firstUpdate && now - lastUpdate > 150);
-
-      if (shouldUpdate) {
-        await adminUpdateAIMessage(roomId, messageId, fullContent, true);
-        lastUpdate = now;
-        firstUpdate = false;
-      }
+    if (shouldUpdate) {
+      await adminUpdateAIMessage(roomId, messageId, fullContent, true);
+      lastUpdate = now;
+      firstUpdate = false;
     }
-
-    if (fullContent) {
-      await adminUpdateAIMessage(roomId, messageId, fullContent, false);
-      await adminUpdateRoomLastMessage(roomId, `AI: ${fullContent}`);
-    }
-    await adminSetAIResponding(roomId, false);
-  } catch (err) {
-    if (err instanceof Error && err.message === "Request cancelled") {
-      throw err;
-    }
-    console.error("[AI] Groq stream failed:", err);
-    throw err;
   }
+
+  if (fullContent) {
+    await adminUpdateAIMessage(roomId, messageId, fullContent, false);
+    await adminUpdateRoomLastMessage(roomId, `AI: ${fullContent}`);
+  }
+  await adminSetAIResponding(roomId, false);
 }
 
 async function streamGeminiResponse(
@@ -200,72 +159,51 @@ async function streamGeminiResponse(
   contextMessages: { role: "user" | "assistant"; content: string }[],
   abortSignal: AbortSignal,
 ) {
-  try {
-    const model = genAI.getGenerativeModel({ model: DEFAULT_GEMINI_MODEL });
+  const model = genAI.getGenerativeModel({ model: DEFAULT_GEMINI_MODEL });
 
-    let history = contextMessages.slice(0, -1).map((msg) => ({
-      role: msg.role === "assistant" ? "model" : "user",
-      parts: [{ text: msg.content }],
-    }));
+  let history = contextMessages.slice(0, -1).map((msg) => ({
+    role: msg.role === "assistant" ? "model" : "user",
+    parts: [{ text: msg.content }],
+  }));
 
-    //
+  const firstUserIndex = history.findIndex((msg) => msg.role === "user");
+  if (firstUserIndex > 0) history = history.slice(firstUserIndex);
+  else if (firstUserIndex === -1) history = [];
 
-    const firstUserIndex = history.findIndex((msg) => msg.role === "user");
-    if (firstUserIndex > 0) {
-      history = history.slice(firstUserIndex);
-    } else if (firstUserIndex === -1) {
-      history = [];
+  const lastMessage = contextMessages[contextMessages.length - 1];
+  const chat = model.startChat({
+    history,
+    generationConfig: { maxOutputTokens: 2048 }, 
+  });
+
+  const result = await chat.sendMessageStream(lastMessage.content);
+
+  let fullContent = "";
+  let lastUpdate = Date.now();
+  let firstUpdate = true;
+
+  for await (const chunk of result.stream) {
+    if (abortSignal.aborted) throw new Error("Request cancelled");
+
+    const chunkText = chunk.text();
+    if (!chunkText) continue;
+    fullContent += chunkText;
+
+    const now = Date.now();
+    const shouldUpdate =
+      (firstUpdate && (now - lastUpdate > 50 || fullContent.length > 50)) ||
+      (!firstUpdate && now - lastUpdate > 150);
+
+    if (shouldUpdate) {
+      await adminUpdateAIMessage(roomId, messageId, fullContent, true);
+      lastUpdate = now;
+      firstUpdate = false;
     }
-
-    const lastMessage = contextMessages[contextMessages.length - 1];
-    const prompt = lastMessage.content;
-
-    const chat = model.startChat({
-      history,
-      generationConfig: {
-        maxOutputTokens: 800,
-      },
-    });
-
-    const result = await chat.sendMessageStream(prompt);
-
-    let fullContent = "";
-    let lastUpdate = Date.now();
-    let firstUpdate = true;
-
-    for await (const chunk of result.stream) {
-      if (abortSignal.aborted) {
-        throw new Error("Request cancelled");
-      }
-
-      const chunkText = chunk.text();
-      if (!chunkText) continue;
-
-      fullContent += chunkText;
-
-      const now = Date.now();
-
-      const shouldUpdate =
-        (firstUpdate && (now - lastUpdate > 50 || fullContent.length > 50)) ||
-        (!firstUpdate && now - lastUpdate > 150);
-
-      if (shouldUpdate) {
-        await adminUpdateAIMessage(roomId, messageId, fullContent, true);
-        lastUpdate = now;
-        firstUpdate = false;
-      }
-    }
-
-    if (fullContent) {
-      await adminUpdateAIMessage(roomId, messageId, fullContent, false);
-      await adminUpdateRoomLastMessage(roomId, `AI: ${fullContent}`);
-    }
-    await adminSetAIResponding(roomId, false);
-  } catch (err) {
-    if (err instanceof Error && err.message === "Request cancelled") {
-      throw err;
-    }
-    console.error("[AI] Gemini stream failed:", err);
-    throw err;
   }
+
+  if (fullContent) {
+    await adminUpdateAIMessage(roomId, messageId, fullContent, false);
+    await adminUpdateRoomLastMessage(roomId, `AI: ${fullContent}`);
+  }
+  await adminSetAIResponding(roomId, false);
 }
