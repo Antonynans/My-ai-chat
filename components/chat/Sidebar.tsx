@@ -158,7 +158,6 @@ export function Sidebar({
   const discoverRooms = publicRooms.filter(
     (r) => !serverRooms.some((rm) => rm.id === r.id),
   );
-  const onlineCount = Object.values(presence).filter((p) => p.online).length;
 
   const sidebarContent = (isMobile = false) => (
     <div className="flex flex-col h-full">
@@ -301,13 +300,6 @@ export function Sidebar({
           </>
         )}
       </nav>
-
-      {onlineCount > 0 && (
-        <div className="flex items-center gap-1.25 px-4 py-1.5 text-[10.5px] text-(--text3)">
-          <span className="w-1.5 h-1.5 rounded-full bg-(--online,#4ade80) shrink-0" />
-          {onlineCount} online
-        </div>
-      )}
 
       <div className="flex items-center gap-2.25 px-3 py-2.5 border-t border-(--border) shrink-0">
         <Avatar

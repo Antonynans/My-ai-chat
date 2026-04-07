@@ -3,7 +3,6 @@ import {
   doc,
   addDoc,
   updateDoc,
-  deleteDoc,
   query,
   where,
   orderBy,
@@ -402,4 +401,30 @@ export async function searchMessages(
   const messages = snap.docs.map(messageFromDoc);
   const q = searchQuery.toLowerCase();
   return messages.filter((m) => m.content.toLowerCase().includes(q));
+}
+
+export async function addReaction(
+  roomId: string,
+  messageId: string,
+  emoji: string,
+  userId: string,
+) {
+  const msgRef = doc(db, "rooms", roomId, "messages", messageId);
+  const reactions = `reactions.${emoji}`;
+  await updateDoc(msgRef, {
+    [reactions]: arrayUnion(userId),
+  });
+}
+
+export async function removeReaction(
+  roomId: string,
+  messageId: string,
+  emoji: string,
+  userId: string,
+) {
+  const msgRef = doc(db, "rooms", roomId, "messages", messageId);
+  const reactions = `reactions.${emoji}`;
+  await updateDoc(msgRef, {
+    [reactions]: arrayRemove(userId),
+  });
 }
