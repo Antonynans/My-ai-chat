@@ -151,7 +151,7 @@ export function ChatHeader({
         {showSearch && (
           <div className="px-4 pb-3 flex flex-col gap-2 transition-opacity duration-200 ease-out">
             <form onSubmit={handleSearch} className="flex gap-1.5">
-              <div className="nx-search-input-wrap">
+              <div className="w-full">
                 <Search
                   size={13}
                   className="absolute left-2.5 top-1/2 -translate-y-1/2 text-(--text3) pointer-events-none"

@@ -43,12 +43,12 @@ export default function LoginPage() {
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
         <div className="absolute -top-1/5 -left-1/10 w-150 h-150 rounded-full bg-[radial-gradient(circle,rgba(200,169,110,0.06)_0%,transparent_70%)]" />
         <div className="absolute -bottom-1/5 -right-1/10 w-125 h-125 rounded-full bg-[radial-gradient(circle,rgba(91,156,246,0.05)_0%,transparent_70%)]" />
-        <div className="absolute inset-0 opacity-30 bg-[linear-gradient(var(--border)_1px,transparent_1px),linear-gradient(90deg,var(--border)_1px,transparent_1px)] bg-[size:40px_40px]" />
+        <div className="absolute inset-0 opacity-30 bg-[linear-gradient(var(--border)_1px,transparent_1px),linear-gradient(90deg,var(--border)_1px,transparent_1px)] bg-size-[40px_40px]" />
       </div>
 
-      <div className="hidden md:flex flex-col justify-between w-[420px] px-12 py-16 border-r border-[var(--border)] relative z-10">
+      <div className="hidden md:flex flex-col justify-between w-105 px-12 py-16 border-r border-(--border) relative z-10">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-[var(--accent)] rounded-xl flex items-center justify-center text-base font-extrabold text-[#0c0c0d]">
+          <div className="w-9 h-9 bg-(--accent) rounded-xl flex items-center justify-center text-base font-extrabold text-[#0c0c0d]">
             N
           </div>
           <span className="font-bold text-base">Nexus</span>
@@ -57,9 +57,9 @@ export default function LoginPage() {
         <div className="space-y-6">
           <div className="text-[30px] font-bold leading-tight tracking-tight">
             Your team,<br />
-            <span className="text-[var(--accent)]">in sync.</span>
+            <span className="text-(--accent)">in sync.</span>
           </div>
-          <p className="text-sm text-[var(--text3)] leading-relaxed max-w-sm">
+          <p className="text-sm text-(--text3) leading-relaxed max-w-sm">
             Real-time messaging with an AI teammate that joins when you need it.
             No noise, just signal.
           </p>
@@ -73,10 +73,10 @@ export default function LoginPage() {
           ].map(({ icon, text }) => (
             <div
               key={text}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)]"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-(--border)"
             >
               <span className="text-base">{icon}</span>
-              <span className="text-sm text-[var(--text2)]">{text}</span>
+              <span className="text-sm text-(--text2)">{text}</span>
             </div>
           ))}
         </div>
@@ -84,9 +84,9 @@ export default function LoginPage() {
 
       {/* Right panel */}
       <div className="flex-1 flex items-start md:items-center justify-center px-6 py-12 md:py-0 relative z-10 overflow-y-auto">
-        <div className="w-full max-w-[420px] space-y-8 animate-[fadeInUp_0.22s_ease_forwards]">
+        <div className="w-full max-w-105 space-y-8 animate-[fadeInUp_0.22s_ease_forwards]">
           <div className="flex items-center justify-center gap-3">
-            <div className="w-9 h-9 bg-[var(--accent)] rounded-xl flex items-center justify-center text-base font-extrabold text-[#0c0c0d]">
+            <div className="w-9 h-9 bg-(--accent) rounded-xl flex items-center justify-center text-base font-extrabold text-[#0c0c0d]">
               N
             </div>
             <span className="font-bold text-base">Nexus</span>
@@ -94,16 +94,16 @@ export default function LoginPage() {
 
           <div className="space-y-2 text-center">
             <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
-            <p className="text-sm text-[var(--text3)]">
+            <p className="text-sm text-(--text3)">
               Sign in to continue to your workspace
             </p>
           </div>
 
-          <div className="bg-[var(--sidebar)] border border-[var(--border)] rounded-2xl p-8 shadow-[0_8px_32px_rgba(0,0,0,0.35)] space-y-6">
+          <div className="bg-(--sidebar) border border-(--border) rounded-2xl p-8 shadow-[0_8px_32px_rgba(0,0,0,0.35)] space-y-6">
             <button
               onClick={handleGoogle}
               disabled={googleLoading}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-[var(--border2)] bg-[var(--surface)] text-sm cursor-pointer hover:border-[var(--border3)] hover:bg-[var(--surface2)] transition"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-(--border2) bg-(--surface) text-sm cursor-pointer hover:border-(--border3) hover:bg-(--surface2) transition"
             >
               {googleLoading ? (
                 <div className="spinner w-4 h-4" />
@@ -114,9 +114,9 @@ export default function LoginPage() {
             </button>
 
             <div className="flex items-center gap-4">
-              <div className="flex-1 h-px bg-[var(--border)]" />
-              <span className="text-xs text-[var(--text3)] tracking-wider">OR</span>
-              <div className="flex-1 h-px bg-[var(--border)]" />
+              <div className="flex-1 h-px bg-(--border)" />
+              <span className="text-xs text-(--text3) tracking-wider">OR</span>
+              <div className="flex-1 h-px bg-(--border)" />
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -146,8 +146,8 @@ export default function LoginPage() {
                 disabled={loading || !email || !password}
                 className={`w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition ${
                   email && password
-                    ? "bg-[var(--accent)] text-[#0c0c0d]"
-                    : "bg-[var(--surface2)] text-[var(--text3)]"
+                    ? "bg-(--accent) text-[#0c0c0d]"
+                    : "bg-(--surface2) text-(--text3)"
                 }`}
               >
                 {loading ? <div className="spinner w-4 h-4" /> : "Sign in"}
@@ -155,9 +155,9 @@ export default function LoginPage() {
             </form>
           </div>
 
-          <p className="text-center text-sm text-[var(--text3)]">
+          <p className="text-center text-sm text-(--text3)">
             No account?{" "}
-            <Link href="/auth/register" className="text-[var(--accent)] font-medium">
+            <Link href="/auth/register" className="text-(--accent) font-medium">
               Create one
             </Link>
           </p>
@@ -190,7 +190,7 @@ function Field({
     <div className="space-y-1.5">
       <label
         className={`block text-xs font-medium transition ${
-          focused ? "text-[var(--accent)]" : "text-[var(--text2)]"
+          focused ? "text-(--accent)" : "text-(--text2)"
         }`}
       >
         {label}
@@ -205,8 +205,8 @@ function Field({
         onBlur={onBlur}
         className={`w-full px-3 py-3 rounded-xl border text-sm outline-none transition ${
           focused
-            ? "border-[var(--accent)] bg-[rgba(200,169,110,0.04)]"
-            : "border-[var(--border2)] bg-[var(--surface)]"
+            ? "border-(--accent) bg-[rgba(200,169,110,0.04)]"
+            : "border-(--border2) bg-(--surface)"
         }`}
       />
     </div>
