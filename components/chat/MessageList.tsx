@@ -212,10 +212,10 @@ export const MessageList = forwardRef<
 
         {!hasMore && allMessages.length > 0 && (
           <div className="flex flex-col items-center gap-1 px-6 py-8">
-            <div className="w-9 h-9 rounded-full bg-[var(--surface2)] flex items-center justify-center text-base mb-1">
+            <div className="w-9 h-9 rounded-full bg-(--surface2) flex items-center justify-center text-base mb-1">
               💬
             </div>
-            <p className="text-[11.5px] font-semibold text-[var(--text3)]">
+            <p className="text-[11.5px] font-semibold text-(--text3)">
               Beginning of conversation
             </p>
           </div>
@@ -223,13 +223,13 @@ export const MessageList = forwardRef<
 
         {allMessages.length === 0 && (
           <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
-            <div className="w-14 h-14 rounded-2xl mb-4 flex items-center justify-center text-2xl bg-[var(--surface)] border border-[var(--border)]">
+            <div className="w-14 h-14 rounded-2xl mb-4 flex items-center justify-center text-2xl bg-(--surface) border border-(--border)">
               💬
             </div>
-            <p className="text-[13.5px] font-semibold text-[var(--text2)] mb-1">
+            <p className="text-[13.5px] font-semibold text-(--text2) mb-1">
               No messages yet
             </p>
-            <p className="text-[12px] text-[var(--text3)] leading-relaxed max-w-[55ch]">
+            <p className="text-[12px] text-(--text3) leading-relaxed max-w-[55ch]">
               Be the first to say something! Use{" "}
               <code className="ai-mention text-[11px]">@ai</code> to invoke the
               assistant.
@@ -253,16 +253,21 @@ export const MessageList = forwardRef<
             >
               {showDateDivider && (
                 <div className="flex items-center gap-3 px-5 py-3 my-1">
-                  <div className="flex-1 h-px bg-[var(--border)]" />
-                  <span className="text-[10.5px] font-medium text-[var(--text3)] whitespace-nowrap px-2 py-0.5 rounded-full border border-[var(--border)] bg-[var(--surface)]">
+                  <div className="flex-1 h-px bg-(--border)" />
+                  <span className="text-[10.5px] font-medium text-(--text3) whitespace-nowrap px-2 py-0.5 rounded-full border border-(--border) bg-(--surface)">
                     {formatDateDivider(msg.createdAt)}
                   </span>
-                  <div className="flex-1 h-px bg-[var(--border)]" />
+                  <div className="flex-1 h-px bg-(--border)" />
                 </div>
               )}
-              <MessageItem message={msg} isGrouped={grouped} />
+              <MessageItem
+                message={msg}
+                isGrouped={grouped}
+                roomId={roomId}
+                currentUserId={currentUserId}
+                memberNames={memberNames}
+              />
 
-              {/* ── Read receipts ── */}
               {readBy.length > 0 && (
                 <div className="flex items-center gap-1 px-5 pb-0.5 justify-end">
                   <div className="flex -space-x-1">
@@ -270,14 +275,14 @@ export const MessageList = forwardRef<
                       <div
                         key={uid}
                         title={`Seen by ${memberNames[uid] ?? uid}`}
-                        className="w-3.5 h-3.5 rounded-full ring-1 ring-[var(--sidebar)]"
+                        className="w-3.5 h-3.5 rounded-full ring-1 ring-(--sidebar)"
                       >
                         <Avatar name={memberNames[uid] ?? uid} size={14} />
                       </div>
                     ))}
                   </div>
                   {readBy.length > 0 && (
-                    <span className="text-[9.5px] text-[var(--text3)]">
+                    <span className="text-[9.5px] text-(--text3)">
                       {readBy.length === 1
                         ? `Seen by ${memberNames[readBy[0]] ?? "1 member"}`
                         : `Seen by ${readBy.length}`}
@@ -289,27 +294,26 @@ export const MessageList = forwardRef<
           );
         })}
 
-        {/* Typing indicator */}
         {typingUsers.length > 0 && (
-          <div className="mx-3 my-1.5 flex items-center gap-3 px-3 py-2.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] animate-fade-in">
+          <div className="mx-3 my-1.5 flex items-center gap-3 px-3 py-2.5 rounded-xl bg-(--surface) border border-(--border) animate-fade-in">
             <div className="flex -space-x-1.5 shrink-0">
               {typingUsers.slice(0, 3).map((u) => (
                 <div
                   key={u.uid ?? u.displayName}
-                  className="w-6 h-6 rounded-full flex items-center justify-center bg-[var(--surface2)] border-2 border-[var(--sidebar)] text-[10px] font-bold text-[var(--text2)] uppercase"
+                  className="w-6 h-6 rounded-full flex items-center justify-center bg-(--surface2) border-2 border-(--sidebar) text-[10px] font-bold text-(--text2) uppercase"
                 >
                   {u.displayName?.[0] ?? "?"}
                 </div>
               ))}
             </div>
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              <div className="flex gap-0.75 items-center text-[var(--text3)]">
+              <div className="flex gap-0.75 items-center text-(--text3)">
                 <span className="nx-typing-dot" />
                 <span className="nx-typing-dot" />
                 <span className="nx-typing-dot" />
               </div>
-              <span className="text-[12px] text-[var(--text3)] truncate">
-                <span className="font-semibold text-[var(--text2)]">
+              <span className="text-[12px] text-(--text3) truncate">
+                <span className="font-semibold text-(--text2)">
                   {typingUsers.length === 1
                     ? typingUsers[0].displayName
                     : typingUsers.length === 2
@@ -322,7 +326,6 @@ export const MessageList = forwardRef<
           </div>
         )}
 
-        {/* Jump to start FAB */}
         {showJumpBtn && (
           <button
             onClick={jumpToStart}
@@ -330,9 +333,9 @@ export const MessageList = forwardRef<
               sticky bottom-4 self-end mr-4
               flex items-center gap-1.5 px-3 py-1.5
               rounded-full text-[11.5px] font-medium
-              bg-[var(--surface)] border border-[var(--border2)] text-[var(--text2)]
+              bg-(--surface) border border-(--border2) text-(--text2)
               shadow-sm transition-all duration-150
-              hover:bg-[var(--surface2)] hover:border-[var(--border)] hover:text-[var(--text)]
+              hover:bg-(--surface2) hover:border-(--border) hover:text-(--text)
               active:scale-95
             "
           >

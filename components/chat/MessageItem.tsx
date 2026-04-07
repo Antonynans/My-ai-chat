@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Message } from "@/lib/types";
 import { Avatar } from "@/components/ui/Avatar";
 import { MessageContent } from "./MessageContent";
+import { MessageReactions } from "./MessageReactions";
 import { formatMessageTime } from "@/lib/utils";
 import { Volume2, VolumeX } from "lucide-react";
 
@@ -10,12 +11,18 @@ interface MessageItemProps {
   message: Message;
   isGrouped?: boolean;
   showAvatar?: boolean;
+  roomId: string;
+  currentUserId: string;
+  memberNames?: Record<string, string>;
 }
 
 export function MessageItem({
   message,
   isGrouped,
   showAvatar = true,
+  roomId,
+  currentUserId,
+  memberNames,
 }: MessageItemProps) {
   const isAI = message.isAIResponse;
   const time = formatMessageTime(message.createdAt);
@@ -176,6 +183,13 @@ export function MessageItem({
             />
           </div>
         )}
+
+        <MessageReactions
+          message={message}
+          roomId={roomId}
+          currentUserId={currentUserId}
+          memberNames={memberNames}
+        />
       </div>
     </div>
   );
