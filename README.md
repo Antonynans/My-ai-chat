@@ -1,17 +1,12 @@
 # Nexus — Team Chat with AI Assistant
 
 A production-grade collaborative chat application built with Next.js 16, Firebase, BetterAuth, and multi-provider AI support. Real-time team messaging with an on-demand AI assistant invoked via `@ai` mentions.
-
+---
+## 🌍 Live Demo
+ https://nexus-ai-chat-project.netlify.app
 ---
 
-## Stack & Justifications
-
-### Firebase (over Supabase)
-
-- **Firestore real-time listeners** are battle-tested for chat — sub-100ms sync, offline persistence, and optimistic writes are first-class
-- **Firebase RTDB** provides `onDisconnect()` which is the only reliable way to handle dropped connections for presence without a server process
-- **Subcollection model** (`rooms/{id}/messages`) maps perfectly to paginated chat history; no JOIN queries needed
-- Trade-off: NoSQL query limits (no full-text search), vendor lock-in. Acknowledged in the search implementation (client-side filter with a 200-doc cap; production would use Algolia or Typesense via Cloud Functions)
+## Stack
 
 ### BetterAuth
 
@@ -27,7 +22,7 @@ A production-grade collaborative chat application built with Next.js 16, Firebas
 
 ### UI
 
-- Custom design system using CSS variables — no component library lock-in
+- Custom design system using tailwind css
 - Syne (display) + Figtree (body) — distinctive, non-generic font pairing
 - Dark/light mode toggle with system preference detection and localStorage persistence
 - Dark-first, fully responsive
@@ -98,95 +93,6 @@ A production-grade collaborative chat application built with Next.js 16, Firebas
 - **React state**: per-component UI state (messages, typing users)
 
 ```
-
----
-
-## Setup
-
-### 1. Firebase
-
-1. Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
-2. Enable **Firestore** (production mode)
-3. Enable **Realtime Database**
-4. Create a web app, copy the config values
-
-**Firestore security rules:**
-
-```
-
-rules_version = '2';
-service cloud.firestore {
-match /databases/{database}/documents {
-match /rooms/{roomId} {
-allow read: if request.auth != null && request.auth.uid in resource.data.members;
-allow create: if request.auth != null;
-allow update: if request.auth != null && request.auth.uid in resource.data.members;
-
-      match /messages/{msgId} {
-        allow read, write: if request.auth != null
-          && request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.members;
-      }
-    }
-
-}
-}
-
-`````
-
-### 2. Environment Variables
-
-Fill in all values in `.env.local`:
-
-````env
-# Firebase Configuration
-NEXT_PUBLIC_FIREBASE_API_KEY=
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
-NEXT_PUBLIC_FIREBASE_APP_ID=
-NEXT_PUBLIC_FIREBASE_DATABASE_URL=
-
-# Firebase Admin (for server-side operations)
-FIREBASE_ADMIN_PROJECT_ID=
-FIREBASE_ADMIN_CLIENT_EMAIL=
-FIREBASE_ADMIN_PRIVATE_KEY=
-
-# AI APIs (choose one)
-OPENAI_API_KEY=
-# or
-GROQ_API_KEY=
-# or
-GEMINI_API_KEY=
-GEMINI_MODEL=gemini-2.5-flash
-AI_PROVIDER=gemini  # or groq
-
-# Authentication
-BETTER_AUTH_SECRET=   # any 32+ char random string
-BETTER_AUTH_URL=http://localhost:3000
-
-# Google OAuth
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-
-# App URL
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-
-`````
-
----
-
-##
-
-### 3. Run
-
-```bash
-npm install
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000)
-
 ---
 
 ## Production Considerations
@@ -199,18 +105,3 @@ Open [http://localhost:3000](http://localhost:3000)
 | Firestore cost   | Batch writes, 150ms stream throttle              | Monitor write volume in high-traffic rooms |
 | Auth security    | httpOnly cookies, CSRF protection via BetterAuth | Add email verification for production      |
 | RTDB cleanup     | `onDisconnect()` auto-removes presence           | Typing indicators auto-expire after 5s     |
-
----
-
-## What I'd Add With More Time
-
-- Thread replies (nested message context)
-- Message reactions (emoji picker)
-- File/image attachments via Firebase Storage
-- E2E tests (Playwright for chat flow, Jest for AI context building)
-- AI response TTS playback (OpenAI TTS API → `<audio>` element)
-- Audit log for AI invoc
-- Message encryption (end-to-end)
-- Admin panel for user/room management
-- Integration with Slack/Discord webhooks
-- Mobile app (React Native)ations
